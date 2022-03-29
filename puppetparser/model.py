@@ -6,12 +6,28 @@ class CodeElement:
 class Attribute(CodeElement):
     def __init__(self, line: int, col: int, key: str, value) -> None:
         super().__init__(line, col)
-        self.key = key
-        self.value = value
+        self.key: str = key
+        self.value: str = value
 
 class Resource(CodeElement):
     def __init__(self, line: int, col: int, type: str, title: str, attributes: list[Attribute]) -> None:
         super().__init__(line, col)
-        self.type = type
-        self.title = title
-        self.attributes = attributes
+        self.type: str = type
+        self.title: str = title
+        self.attributes: list[Attribute] = attributes
+
+class Parameter(CodeElement):
+    def __init__(self, line: int, col: int, type: str, name: str, default):
+        super().__init__(line, col)
+        self.type: str = type
+        self.name: str = name
+        self.default = default
+
+class PuppetClass(CodeElement):
+    def __init__(self, line: int, col: int, name: str, 
+            block: list, inherits: str, parameters: list[Parameter]) -> None:
+        super().__init__(line, col)
+        self.name: str = name
+        self.block: list = block
+        self.inherits: str = inherits
+        self.parameters: list[Parameter] = parameters
