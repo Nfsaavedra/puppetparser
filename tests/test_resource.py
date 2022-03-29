@@ -15,13 +15,14 @@ class TestResource(unittest.TestCase):
                 scinot => 1.0e-10,
                 hexa => 0x777,
                 octal => 0777,
+                array => [1, 2.0, "kek"],
             } 
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 8)
+        self.assertEqual(len(res[0].attributes), 9)
         self.assertEqual(res[0].type, "test")
         self.assertEqual(res[0].title, "test123")
 
@@ -35,6 +36,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].attributes[5].value, 1e-10)
         self.assertEqual(res[0].attributes[6].value, 0x777)
         self.assertEqual(res[0].attributes[7].value, 0o777)
+        self.assertEqual(res[0].attributes[8].value, [1, 2.0, "kek"])
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
 

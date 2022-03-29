@@ -48,6 +48,8 @@ def parser_yacc(script):
         'RBRACKET',
         'LPAREN',
         'RPAREN',
+        'LPARENR',
+        'RPARENR',
         'EQUAL',
         'COLON',
         'HASH_ROCKET',
@@ -98,6 +100,8 @@ def parser_yacc(script):
     t_RBRACKET = r'\}'
     t_LPAREN = r'\('
     t_RPAREN = r'\)'
+    t_LPARENR = r'\['
+    t_RPARENR = r'\]'
     t_HASH_ROCKET = r'=>'
     t_EQUAL = r'\='
     t_COLON = r'\:'
@@ -260,6 +264,26 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
+    def p_array(p):
+        r'array : LPARENR valuelist RPARENR'
+        p[0] = p[2]
+
+    def p_valuelist(p):
+        r'valuelist : value COMMA valuelist'
+        p[0] = [p[1]] + p[3]
+
+    def p_valuelist_single(p):
+        r'valuelist : value'
+        p[0] = [p[1]]
+
+    def p_valuelist_empty(p):
+        r'valuelist : empty'
+        p[0] = []
+
+    def p_value_array(p):
+        r'value : array'
+        p[0] = p[1]
+
     def p_value_string(p):
         r'value : STRING'
         p[0] = p[1]
@@ -282,7 +306,8 @@ def parser_yacc(script):
 
     def p_value_id(p):
         r'value : ID'
-        if not re.match(r"^[a-z][A-Za-z0-9\-\_]*$", p[1]):
+        if not re.match(r"^[a-z][A-Za-z0-9\-\_]*$", p[1]) and \
+                not re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = p[1]
 
