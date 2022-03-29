@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parser_yacc
-from puppetparser.model import Attribute, Resource
+from puppetparser.model import Attribute, Regex, Resource
 
 class TestResource(unittest.TestCase):
     def test_resource(self):
@@ -20,13 +20,14 @@ class TestResource(unittest.TestCase):
                     1 => "hello",
                     "kek" => 2
                 },
+                regex => /$\/*hello*/^/
             } 
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 10)
+        self.assertEqual(len(res[0].attributes), 11)
         self.assertEqual(res[0].type, "test")
         self.assertEqual(res[0].title, "test123")
 
@@ -42,6 +43,8 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].attributes[7].value, 0o777)
         self.assertEqual(res[0].attributes[8].value, [1, 2.0, "kek"])
         self.assertEqual(res[0].attributes[9].value, {1: "hello", "kek": 2})
+        self.assertIsInstance(res[0].attributes[10].value, Regex)
+        self.assertEqual(res[0].attributes[10].value.content, "/$\/*hello*/^/")
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
 

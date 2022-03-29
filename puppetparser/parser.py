@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Attribute, Comment, Parameter, PuppetClass, Resource
+from puppetparser.model import Attribute, Comment, Parameter, PuppetClass, Regex, Resource
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -43,6 +43,7 @@ def parser_yacc(script):
         'STRING',
         'INTEGER',
         'FLOAT',
+        'REGEX',
         # SYNTAX SUGAR
         'LBRACKET',
         'RBRACKET',
@@ -108,6 +109,7 @@ def parser_yacc(script):
     t_COMMA = r','
     t_INTEGER = r'-?(0|[1-9]\d*)'
     t_FLOAT = r'(-?(0|[1-9]\d*)(\.\d+)?)'
+    t_REGEX = r'\/.*\/'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -334,6 +336,10 @@ def parser_yacc(script):
     def p_value_float(p):
         r'value : FLOAT'
         p[0] = float(p[1])
+
+    def p_value_regex(p):
+        r'value : REGEX'
+        p[0] = Regex(p[1])
 
     def p_value_id(p):
         r'value : ID'

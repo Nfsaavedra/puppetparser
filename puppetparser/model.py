@@ -36,3 +36,7 @@ class Comment(CodeElement):
     def __init__(self, line: int, col: int, content: str):
         super().__init__(line, col)
         self.content = content
+
+class Regex:
+    def __init__(self, content: str):
+        self.content = content
