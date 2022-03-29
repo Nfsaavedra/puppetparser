@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Comment, Node, Parameter, PuppetClass, Regex, Resource
+from puppetparser.model import Assignment, Attribute, Comment, Node, Operation, Parameter, PuppetClass, Regex, Resource
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -59,6 +59,16 @@ def parser_yacc(script):
         'ID',
         # Special
         'CLASS',
+        # Comparison operators
+        'CMP_EQUAL',
+        'CMP_NOT_EQUAL',
+        'CMP_LESS_THAN',
+        'CMP_GREATER_THAN',
+        'CMP_LESS_THAN_OR_EQUAL',
+        'CMP_GREATER_THAN_OR_EQUAL',
+        'CMP_REGEX_MATCH',
+        'CMP_REGEX_NOT_MATCH',
+        'CMP_IN'
     )
 
     keywords = {
@@ -76,7 +86,7 @@ def parser_yacc(script):
         'function': 'FUNCTION',
         'if': 'IF',
         'import': 'IMPORT',
-        'in': 'IN',
+        'in': 'CMP_IN',
         'inherits': 'INHERITS',
         'node': 'NODE',
         'or': 'OR',
@@ -104,12 +114,20 @@ def parser_yacc(script):
     t_LPARENR = r'\['
     t_RPARENR = r'\]'
     t_HASH_ROCKET = r'=>'
-    t_EQUAL = r'\='
     t_COLON = r'\:'
     t_COMMA = r','
     t_INTEGER = r'-?(0|[1-9]\d*)'
     t_FLOAT = r'(-?(0|[1-9]\d*)(\.\d+)?)'
     t_REGEX = r'\/.*\/'
+    t_CMP_EQUAL = r'=='
+    t_CMP_NOT_EQUAL = r'!='
+    t_CMP_LESS_THAN = r'<'
+    t_CMP_GREATER_THAN = r'>'
+    t_CMP_LESS_THAN_OR_EQUAL = r'<='
+    t_CMP_GREATER_THAN_OR_EQUAL = r'>='
+    t_CMP_REGEX_MATCH = r'=~'
+    t_CMP_REGEX_NOT_MATCH = r'!~'
+    t_EQUAL = r'\='
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -179,6 +197,14 @@ def parser_yacc(script):
     #         break      # No more input
     #     print(tok)
 
+    precedence = (
+        ('left', 'CMP_IN'),
+        ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
+        ('left', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
+        ('left', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
+        ('left', 'EQUAL'),
+    )
+
     def p_program(p):
         "program : block"
         p[0] = p[1]
@@ -215,7 +241,7 @@ def parser_yacc(script):
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
     def p_assignment(p):
-        r'assignment : ID EQUAL value'
+        r'assignment : ID EQUAL expression'
         if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and not \
                 re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
@@ -251,8 +277,8 @@ def parser_yacc(script):
         r'block : empty'
         p[0] = []
 
-    def p_statement_assignment(p):
-        r'statement : assignment'
+    def p_statement_expression(p):
+        r'statement : expression'
         p[0] = p[1]
 
     def p_statement_node(p):
@@ -286,7 +312,7 @@ def parser_yacc(script):
         p[0] = []
 
     def p_parameter(p):
-        r'parameter : ID ID EQUAL value'
+        r'parameter : ID ID EQUAL expression'
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
 
     def p_parameter_no_default(p):
@@ -298,7 +324,7 @@ def parser_yacc(script):
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], "")
 
     def p_parameter_default_without_type(p):
-        r'parameter : ID EQUAL value'
+        r'parameter : ID EQUAL expression'
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
 
     def p_attributes(p):
@@ -314,13 +340,13 @@ def parser_yacc(script):
         p[0] = []
 
     def p_attribute(p):
-        r'attribute : ID HASH_ROCKET value'
+        r'attribute : ID HASH_ROCKET expression'
         if not re.match(r"^[a-z]+$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_array(p):
-        r'array : LPARENR valuelist RPARENR'
+        r'array : LPARENR expressionlist RPARENR'
         p[0] = p[2]
 
     def p_hash(p):
@@ -343,21 +369,68 @@ def parser_yacc(script):
         p[0] = []
 
     def p_keyvalue(p):
-        r'keyvalue : value HASH_ROCKET value'
+        r'keyvalue : expression HASH_ROCKET expression'
         p[0] = (p[1], p[3])
 
-    def p_valuelist(p):
-        r'valuelist : value COMMA valuelist'
+    def p_expressionlist(p):
+        r'expressionlist : expression COMMA expressionlist'
         p[0] = [p[1]] + p[3]
 
     def p_valuelist_single(p):
-        r'valuelist : value'
+        r'expressionlist : expression'
         p[0] = [p[1]]
 
-    def p_valuelist_empty(p):
-        r'valuelist : empty'
+    def p_expressionlist_empty(p):
+        r'expressionlist : empty'
         p[0] = []
 
+    ### Expressions ###
+    def p_expression(p):
+        'expression : value'
+        p[0] = p[1]
+
+    def p_expression_assignment(p):
+        r'expression : assignment'
+        p[0] = p[1]
+
+    ## Comparison ##
+    def p_expression_equal(p):
+        r'expression : expression CMP_EQUAL expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_not_equal(p):
+        r'expression : expression CMP_NOT_EQUAL expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_less_than(p):
+        r'expression : expression CMP_LESS_THAN expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_greater_than(p):
+        r'expression : expression CMP_GREATER_THAN expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_less_than_or_equal(p):
+        r'expression : expression CMP_LESS_THAN_OR_EQUAL expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_greater_than_or_equal(p):
+        r'expression : expression CMP_GREATER_THAN_OR_EQUAL expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_regex_match(p):
+        r'expression : expression CMP_REGEX_MATCH expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_regex_not_match(p):
+        r'expression : expression CMP_REGEX_NOT_MATCH expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_in(p):
+        r'expression : expression CMP_IN expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    ### Values ###
     def p_value_hash(p):
         r'value : hash'
         p[0] = p[1]

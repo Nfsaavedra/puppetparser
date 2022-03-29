@@ -52,3 +52,8 @@ class Comment(CodeElement):
 class Regex:
     def __init__(self, content: str):
         self.content = content
+
+class Operation:
+    def __init__(self, arguments: tuple, operator: str):
+        self.arguments: tuple = arguments
+        self.operator: str = operator
