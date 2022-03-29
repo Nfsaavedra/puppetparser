@@ -90,6 +90,7 @@ def parser_yacc(script):
     }
 
     states = (
+        ('comment', 'exclusive'),
     )
 
     # Other
@@ -116,6 +117,20 @@ def parser_yacc(script):
         comments.append(Comment(t.lexer.lineno, 
                 find_column(script, t.lexpos), t.value[1:-1]))
         t.lexer.lineno += 1
+
+    def t_comment(t):
+        r'/\*'
+        t.lexer.begin('comment')
+
+    def t_comment_END(t):
+        r'\*/'
+        t.lexer.begin('INITIAL')
+
+    def t_comment_content(t):
+        r'[^(\*/)]+'
+        comments.append(Comment(t.lexer.lineno, 
+            find_column(script, t.lexpos), t.value))
+        t.lexer.lineno += t.value.count('\n')
 
     def t_octal_INTEGER(t):
         r'0[0-9]+'
@@ -145,7 +160,7 @@ def parser_yacc(script):
         return t
 
     def t_ANY_error(t):
-        print(f'Illegal character {t.value[0]!r}.')
+        print(f'Illegal character {t.value[0]!r} ({t.lineno}, {find_column(script, t.lexpos)}).')
         t.lexer.skip(1)
 
     lexer = lex()
