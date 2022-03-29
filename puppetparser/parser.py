@@ -251,15 +251,19 @@ def parser_yacc(script):
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
 
     def p_attributes(p):
-        r'attributes : attribute attributes'
-        p[0] = [p[1]] + p[2]
+        r'attributes : attribute COMMA attributes'
+        p[0] = [p[1]] + p[3]
+
+    def p_attributes_single(p):
+        r'attributes : attribute'
+        p[0] = [p[1]]
 
     def p_attributes_empty(p):
         r'attributes : empty'
         p[0] = []
 
     def p_attribute(p):
-        r'attribute : ID HASH_ROCKET value COMMA'
+        r'attribute : ID HASH_ROCKET value'
         if not re.match(r"^[a-z]+$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
@@ -267,6 +271,29 @@ def parser_yacc(script):
     def p_array(p):
         r'array : LPARENR valuelist RPARENR'
         p[0] = p[2]
+
+    def p_hash(p):
+        r'hash : LBRACKET keyvalue_pairs RBRACKET'
+        res = {}
+        for kv in p[2]:
+            res[kv[0]] = kv[1]
+        p[0] = res
+
+    def p_keyvalue_pairs(p):
+        r'keyvalue_pairs : keyvalue COMMA keyvalue_pairs'
+        p[0] = [p[1]] + p[3]
+
+    def p_keyvalue_pairs_single(p):
+        r'keyvalue_pairs : keyvalue'
+        p[0] = [p[1]]
+
+    def p_keyvalue_pairs_empty(p):
+        r'keyvalue_pairs : empty'
+        p[0] = []
+
+    def p_keyvalue(p):
+        r'keyvalue : value HASH_ROCKET value'
+        p[0] = (p[1], p[3])
 
     def p_valuelist(p):
         r'valuelist : value COMMA valuelist'
@@ -279,6 +306,10 @@ def parser_yacc(script):
     def p_valuelist_empty(p):
         r'valuelist : empty'
         p[0] = []
+
+    def p_value_hash(p):
+        r'value : hash'
+        p[0] = p[1]
 
     def p_value_array(p):
         r'value : array'

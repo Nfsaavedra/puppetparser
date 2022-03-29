@@ -16,13 +16,17 @@ class TestResource(unittest.TestCase):
                 hexa => 0x777,
                 octal => 0777,
                 array => [1, 2.0, "kek"],
+                hash => {
+                    1 => "hello",
+                    "kek" => 2
+                },
             } 
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 9)
+        self.assertEqual(len(res[0].attributes), 10)
         self.assertEqual(res[0].type, "test")
         self.assertEqual(res[0].title, "test123")
 
@@ -37,7 +41,25 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].attributes[6].value, 0x777)
         self.assertEqual(res[0].attributes[7].value, 0o777)
         self.assertEqual(res[0].attributes[8].value, [1, 2.0, "kek"])
+        self.assertEqual(res[0].attributes[9].value, {1: "hello", "kek": 2})
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
 
+    def test_resource_without_comma(self):
+        code = """
+            test { 'test123':
+                ensure => running,
+                enable => true,
+                content => "hello",
+                int => 123,
+                float => 0.1,
+                scinot => 1.0e-10,
+                hexa => 0x777,
+                octal => 0777,
+                array => [1, 2.0, "kek"],
+            } 
+        """
 
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res, list)
+        self.assertIsInstance(res[0], Resource)
