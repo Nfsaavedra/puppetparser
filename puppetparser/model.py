@@ -31,3 +31,8 @@ class PuppetClass(CodeElement):
         self.block: list = block
         self.inherits: str = inherits
         self.parameters: list[Parameter] = parameters
+
+class Comment(CodeElement):
+    def __init__(self, line: int, col: int, content: str):
+        super().__init__(line, col)
+        self.content = content

@@ -1,14 +1,15 @@
-from ast import keyword
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Attribute, Parameter, PuppetClass, Resource
+from puppetparser.model import Attribute, Comment, Parameter, PuppetClass, Resource
 
-def find_column(input, p, index):
-    line_start = input.rfind('\n', 0, p.lexpos(index)) + 1
-    return (p.lexpos(index) - line_start) + 1
+def find_column(input, pos):
+    line_start = input.rfind('\n', 0, pos) + 1
+    return (pos - line_start) + 1
 
 def parser_yacc(script):
+    comments = []
+
     tokens = (
         # Keywords
         'AND', 
@@ -54,7 +55,7 @@ def parser_yacc(script):
         # Identifiers
         'ID',
         # Special
-        'CLASS'
+        'CLASS',
     )
 
     keywords = {
@@ -110,6 +111,12 @@ def parser_yacc(script):
         r'\n+'
         t.lexer.lineno += len(t.value)
 
+    def t_COMMENT(t):
+        r'\#.*\n'
+        comments.append(Comment(t.lexer.lineno, 
+                find_column(script, t.lexpos), t.value[1:-1]))
+        t.lexer.lineno += 1
+
     def t_octal_INTEGER(t):
         r'0[0-9]+'
         t.value = int(t.value, 8)
@@ -158,7 +165,7 @@ def parser_yacc(script):
     def p_class(p):
         r'class : CLASS class_header LBRACKET block RBRACKET'
         p[0] = PuppetClass(p.lineno(1), 
-                find_column(script, p, 1), p[2][0], p[4], p[2][2], p[2][1])
+                find_column(script, p.lexpos(1)), p[2][0], p[4], p[2][2], p[2][1])
 
     def p_class_header(p):
         r'class_header : ID LPAREN parameters RPAREN'
@@ -194,7 +201,7 @@ def parser_yacc(script):
         r'resource : ID LBRACKET STRING COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
-        p[0] = Resource(p.lineno(1), find_column(script, p, 1), p[1], p[3], p[5])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
 
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
@@ -210,19 +217,19 @@ def parser_yacc(script):
 
     def p_parameter(p):
         r'parameter : ID ID EQUAL value'
-        p[0] = Parameter(p.lineno(1), find_column(script, p, 1), p[1], p[2], p[4])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
 
     def p_parameter_no_default(p):
         r'parameter : ID ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p, 1), p[1], p[2], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], "")
 
     def p_parameter_only_name(p):
         r'parameter : ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p, 1), "", p[1], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], "")
 
     def p_parameter_default_without_type(p):
         r'parameter : ID EQUAL value'
-        p[0] = Parameter(p.lineno(1), find_column(script, p, 1), "", p[1], p[3])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
 
     def p_attributes(p):
         r'attributes : attribute attributes'
@@ -236,7 +243,7 @@ def parser_yacc(script):
         r'attribute : ID HASH_ROCKET value COMMA'
         if not re.match(r"^[a-z]+$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
-        p[0] = Attribute(p.lineno(1), find_column(script, p, 1), p[1], p[3])
+        p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_value_string(p):
         r'value : STRING'
@@ -272,4 +279,4 @@ def parser_yacc(script):
 
     # Build the parser
     parser = yacc()
-    return parser.parse(script)
+    return parser.parse(script), comments

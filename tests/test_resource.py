@@ -18,7 +18,7 @@ class TestResource(unittest.TestCase):
             } 
         """
 
-        res = parser_yacc(code)
+        res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(len(res[0].attributes), 8)

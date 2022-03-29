@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parser_yacc
-from puppetparser.model import PuppetClass, Resource
+from puppetparser.model import PuppetClass, Comment
 
 class TestClass(unittest.TestCase):
     def test_resource(self):
@@ -10,10 +10,10 @@ class TestClass(unittest.TestCase):
                 package { 'apache2':
                     ensure => present,
                 }
-
+                # Test
                 file { '/var/www/html/index.html':
                     ensure  => file,
-                    content => "${content} ${::facts['ipaddress']}",
+                    content => "${content} ${::facts['ipaddress']}", # Test2
                 }
 
                 service { 'apache2':
@@ -23,12 +23,12 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res, comments = parser_yacc(code)
         self.assertIsInstance(res[0], PuppetClass)
-        self.assertEqual(res[0].name, "webserver")
-        self.assertEqual(res[0].inherits, "webserver2")
-        self.assertEqual(res[0].parameters[0].name, "$content")
-        self.assertEqual(res[0].parameters[0].type, "String")
-        self.assertEqual(len(res[0].block), 3)
-        for e in res[0].block:
-            self.assertIsInstance(e, Resource)
+        self.assertEqual(len(comments), 2)
+        for c in comments:
+            self.assertIsInstance(c, Comment)
+        self.assertEqual(comments[0].content, " Test")
+        self.assertEqual(comments[0].line, 6)
+        self.assertEqual(comments[1].content, " Test2")
+        self.assertEqual(comments[1].line, 9)
