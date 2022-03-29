@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Attribute, Comment, Parameter, PuppetClass, Regex, Resource
+from puppetparser.model import Attribute, Comment, Node, Parameter, PuppetClass, Regex, Resource
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -202,6 +202,18 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = (p[1], p[3], p[6])
 
+    def p_node(p):
+        r'node : NODE STRING LBRACKET block RBRACKET'
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)),  p[2], p[4])
+
+    def p_node_regex(p):
+        r'node : NODE REGEX LBRACKET block RBRACKET'
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+
+    def p_node_default(p):
+        r'node : NODE DEFAULT LBRACKET block RBRACKET'
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+
     def p_block(p):
         r'block : statement block'
         p[0] = [p[1]] + p[2]
@@ -209,6 +221,10 @@ def parser_yacc(script):
     def p_block_empty(p):
         r'block : empty'
         p[0] = []
+
+    def p_statement_node(p):
+        r'statement : node'
+        p[0] = p[1]
 
     def p_statement_resource(p):
         r'statement : resource'

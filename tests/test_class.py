@@ -4,7 +4,7 @@ from puppetparser.parser import parser_yacc
 from puppetparser.model import PuppetClass, Resource
 
 class TestClass(unittest.TestCase):
-    def test_resource(self):
+    def test_class(self):
         code = """
             class webserver (String $content = "") inherits webserver2 {
                 package { 'apache2':
