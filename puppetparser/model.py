@@ -17,11 +17,17 @@ class Resource(CodeElement):
         self.attributes: list[Attribute] = attributes
 
 class Parameter(CodeElement):
-    def __init__(self, line: int, col: int, type: str, name: str, default):
+    def __init__(self, line: int, col: int, type: str, name: str, default) -> None:
         super().__init__(line, col)
         self.type: str = type
         self.name: str = name
         self.default = default
+
+class Assignment(CodeElement):
+    def __init__(self, line: int, col: int, name, value) -> None:
+        super().__init__(line, col)
+        self.name = name
+        self.value = value
 
 class PuppetClass(CodeElement):
     def __init__(self, line: int, col: int, name: str, 

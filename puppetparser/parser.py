@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Attribute, Comment, Node, Parameter, PuppetClass, Regex, Resource
+from puppetparser.model import Assignment, Attribute, Comment, Node, Parameter, PuppetClass, Regex, Resource
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -214,6 +214,35 @@ def parser_yacc(script):
         r'node : NODE DEFAULT LBRACKET block RBRACKET'
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
+    def p_assignment(p):
+        r'assignment : ID EQUAL value'
+        if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and not \
+                re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
+            print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
+    def p_assignment_array(p):
+        r'assignment : array EQUAL array'
+        if len(p[1]) != len(p[3]):
+            print(f'Syntax error on line {p.lineno(1)}. Arrays must match sizes.')
+        for id in p[1]:
+            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
+                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
+                print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
+    def p_assignment_hash(p):
+        r'assignment : array EQUAL hash'
+        for id in p[1]:
+            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
+                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
+                print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+
+            if id not in p[3]:
+                print(f'Syntax error on line {p.lineno(1)}. The key must be present on the hash.')
+
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
     def p_block(p):
         r'block : statement block'
         p[0] = [p[1]] + p[2]
@@ -221,6 +250,10 @@ def parser_yacc(script):
     def p_block_empty(p):
         r'block : empty'
         p[0] = []
+
+    def p_statement_assignment(p):
+        r'statement : assignment'
+        p[0] = p[1]
 
     def p_statement_node(p):
         r'statement : node'
@@ -360,6 +393,7 @@ def parser_yacc(script):
     def p_value_id(p):
         r'value : ID'
         if not re.match(r"^[a-z][A-Za-z0-9\-\_]*$", p[1]) and \
+                not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and \
                 not re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = p[1]
