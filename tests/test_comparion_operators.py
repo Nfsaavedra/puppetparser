@@ -7,7 +7,7 @@ class TestClass(unittest.TestCase):
     def test_comparison_operators(self):
         code = """
             service { 'apache2':
-                enable => true == 2 in [true, false],
+                enable => (true == 2) in [true, false],
                 test => 5 < 7
             } 
         """

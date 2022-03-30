@@ -12,7 +12,6 @@ def parser_yacc(script):
 
     tokens = (
         # Keywords
-        'AND', 
         'APPLICATION', 
         'ATTR', 
         'CASE', 
@@ -29,7 +28,6 @@ def parser_yacc(script):
         'IN',
         'INHERITS',
         'NODE',
-        'OR',
         'PRIVATE',
         'PRODUCES',
         'REGEXP',
@@ -68,11 +66,14 @@ def parser_yacc(script):
         'CMP_GREATER_THAN_OR_EQUAL',
         'CMP_REGEX_MATCH',
         'CMP_REGEX_NOT_MATCH',
-        'CMP_IN'
+        'CMP_IN',
+        'BOOL_AND',
+        'BOOL_OR',
+        'BOOL_NOT',
     )
 
     keywords = {
-        'and': 'AND', 
+        'and': 'BOOL_AND', 
         'application': 'APPLICATION', 
         'attr': 'ATTR', 
         'case': 'CASE', 
@@ -89,7 +90,7 @@ def parser_yacc(script):
         'in': 'CMP_IN',
         'inherits': 'INHERITS',
         'node': 'NODE',
-        'or': 'OR',
+        'or': 'BOOL_OR',
         'private': 'PRIVATE',
         'produces': 'PRODUCES',
         'regexp': 'REGEXP',
@@ -128,6 +129,7 @@ def parser_yacc(script):
     t_CMP_REGEX_MATCH = r'=~'
     t_CMP_REGEX_NOT_MATCH = r'!~'
     t_EQUAL = r'\='
+    t_BOOL_NOT = r'!'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -198,11 +200,14 @@ def parser_yacc(script):
     #     print(tok)
 
     precedence = (
-        ('left', 'CMP_IN'),
-        ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
-        ('left', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
-        ('left', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
         ('left', 'EQUAL'),
+        ('left', 'BOOL_OR'),
+        ('left', 'BOOL_AND'),
+        ('left', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
+        ('left', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
+        ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
+        ('left', 'CMP_IN'),
+        ('left', 'BOOL_NOT'),
     )
 
     def p_program(p):
@@ -389,6 +394,10 @@ def parser_yacc(script):
         'expression : value'
         p[0] = p[1]
 
+    def p_expression_paren(p):
+        'expression : LPAREN expression RPAREN'
+        p[0] = p[2]
+
     def p_expression_assignment(p):
         r'expression : assignment'
         p[0] = p[1]
@@ -429,6 +438,19 @@ def parser_yacc(script):
     def p_expression_in(p):
         r'expression : expression CMP_IN expression'
         p[0] = Operation((p[1], p[3]), p[2])
+
+    ## Boolean
+    def p_expression_and(p):
+        r'expression : expression BOOL_AND expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_or(p):
+        r'expression : expression BOOL_OR expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_not(p):
+        r'expression : BOOL_NOT expression'
+        p[0] = Operation((p[2],), p[1])
 
     ### Values ###
     def p_value_hash(p):
