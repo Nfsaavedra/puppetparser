@@ -126,8 +126,6 @@ def parser_yacc(script):
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
     t_COMMA = r','
-    t_INTEGER = r'(0|[1-9]\d*)'
-    t_FLOAT = r'((0|[1-9]\d*)(\.\d+)?)'
     t_REGEX = r'\/.*\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
@@ -186,9 +184,12 @@ def parser_yacc(script):
         t.type = "INTEGER"
         return t
 
-    def t_sci_not_FLOAT(t):
+    def t_NUMBER(t):
         r'((0|[1-9]\d*)(\.\d+)?(e-?(0|[1-9]\d*))?)'
-        t.type = "FLOAT"
+        if '.' in t.value:
+            t.type = "FLOAT"
+        else:
+            t.type = "INTEGER"
         return t
 
     def t_ID(t):
@@ -221,6 +222,7 @@ def parser_yacc(script):
         ('left', 'BOOL_AND'),
         ('nonassoc', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
         ('nonassoc', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
+        ('left', 'ARITH_LSHIFT', 'ARITH_RSHIFT'),
         ('left', 'ARITH_ADD', 'ARITH_SUB'),
         ('left', 'ARITH_MUL', 'ARITH_DIV', 'ARITH_MOD'),
         ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
@@ -301,8 +303,8 @@ def parser_yacc(script):
         r'block : empty'
         p[0] = []
 
-    def p_statement_expression(p):
-        r'statement : expression'
+    def p_statement_assignment(p):
+        r'statement : assignment'
         p[0] = p[1]
 
     def p_statement_node(p):
@@ -420,6 +422,14 @@ def parser_yacc(script):
     def p_expression_assignment(p):
         r'expression : assignment'
         p[0] = p[1]
+
+    def p_expression_access(p):
+        r'expression : expression LPARENR expression RPARENR'
+        p[0] = Operation((p[1], p[3]), p[2] + p[4])
+
+    def p_expression_access_section(p):
+        r'expression : expression LPARENR INTEGER COMMA INTEGER RPARENR'
+        p[0] = Operation((p[1], p[3], p[5]), p[2] + p[4] + p[6])
 
     ## Comparison ##
     def p_expression_equal(p):
