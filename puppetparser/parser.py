@@ -78,7 +78,7 @@ def parser_yacc(script):
         'ARITH_MUL',
         'ARITH_MOD',
         'ARITH_LSHIFT',
-        'ARITH_RSHIFT'
+        'ARITH_RSHIFT',
     )
 
     keywords = {
@@ -227,6 +227,7 @@ def parser_yacc(script):
         ('left', 'ARITH_MUL', 'ARITH_DIV', 'ARITH_MOD'),
         ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
         ('left', 'CMP_IN'),
+        ('right', 'ARRAY_SPLAT'),
         ('right', 'ARITH_MINUS'),
         ('right', 'BOOL_NOT'),
     )
@@ -486,10 +487,12 @@ def parser_yacc(script):
         r'expression : ARITH_SUB expression %prec ARITH_MINUS'
         p[0] = Operation((p[2],), p[1])
 
+    # It also works for array concatenation and hash merging
     def p_expression_addition(p):
         r'expression : expression ARITH_ADD expression'
         p[0] = Operation((p[1], p[3]), p[2])
 
+    # It also works for array and hash removal
     def p_expression_subtraction(p):
         r'expression : expression ARITH_SUB expression'
         p[0] = Operation((p[1], p[3]), p[2])
@@ -506,6 +509,7 @@ def parser_yacc(script):
         r'expression : expression ARITH_MOD expression'
         p[0] = Operation((p[1], p[3]), p[2])
 
+    # It also works for array append
     def p_expression_left_shift(p):
         r'expression : expression ARITH_LSHIFT expression'
         p[0] = Operation((p[1], p[3]), p[2])
@@ -513,6 +517,11 @@ def parser_yacc(script):
     def p_expression_right_shift(p):
         r'expression : expression ARITH_RSHIFT expression'
         p[0] = Operation((p[1], p[3]), p[2])
+
+    # Array Operations
+    def p_expression_splat(p):
+        r'expression : ARITH_MUL expression %prec ARRAY_SPLAT'
+        p[0] = Operation((p[2],), p[1])
 
     ### Values ###
     def p_value_hash(p):
