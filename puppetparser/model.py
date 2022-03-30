@@ -53,7 +53,21 @@ class Regex:
     def __init__(self, content: str):
         self.content = content
 
+#FIXME probably should be a codeelement
 class Operation:
     def __init__(self, arguments: tuple, operator: str):
         self.arguments: tuple = arguments
         self.operator: str = operator
+
+class Lambda(CodeElement):
+    def __init__(self, line: int, col: int, parameters: tuple, block: list) -> None:
+        super().__init__(line, col)
+        self.parameters = parameters
+        self.block = block
+
+class FunctionCall(CodeElement):
+    def __init__(self, line: int, col: int, name: str, arguments: tuple, lamb: Lambda) -> None:
+        super().__init__(line, col)
+        self.name = name
+        self.arguments = arguments
+        self.lamb = lamb

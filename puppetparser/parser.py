@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Comment, Node, Operation, Parameter, PuppetClass, Regex, Resource
+from puppetparser.model import Assignment, Attribute, Comment, FunctionCall, Lambda, Node, Operation, Parameter, PuppetClass, Regex, Resource
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -53,6 +53,8 @@ def parser_yacc(script):
         'COLON',
         'HASH_ROCKET',
         'COMMA',
+        'BAR',
+        'DOT',
         # Identifiers
         'ID',
         # Special
@@ -123,9 +125,11 @@ def parser_yacc(script):
     t_RPAREN = r'\)'
     t_LPARENR = r'\['
     t_RPARENR = r'\]'
+    t_BAR = r'\|'
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
     t_COMMA = r','
+    t_DOT = r'\.'
     t_REGEX = r'\/.*\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
@@ -193,7 +197,7 @@ def parser_yacc(script):
         return t
 
     def t_ID(t):
-        r'[A-Za-z\$][a-z0-9\.\_\-\:]*'
+        r'[A-Za-z\$][a-z0-9\_\-\:]*'
         t.type = keywords.get(t.value,'ID')
         return t
 
@@ -217,7 +221,11 @@ def parser_yacc(script):
     #     print(tok)
 
     precedence = (
+        ('nonassoc', 'NO_LAMBDA'),
+        ('nonassoc', 'LAMBDA'),
+
         ('left', 'EQUAL'),
+        ('left', 'DOT'),
         ('left', 'BOOL_OR'),
         ('left', 'BOOL_AND'),
         ('nonassoc', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
@@ -230,6 +238,8 @@ def parser_yacc(script):
         ('right', 'ARRAY_SPLAT'),
         ('right', 'ARITH_MINUS'),
         ('right', 'BOOL_NOT'),
+        ('left', 'LPAREN'),
+        ('left', 'BAR'),
     )
 
     def p_program(p):
@@ -304,22 +314,6 @@ def parser_yacc(script):
         r'block : empty'
         p[0] = []
 
-    def p_statement_assignment(p):
-        r'statement : assignment'
-        p[0] = p[1]
-
-    def p_statement_node(p):
-        r'statement : node'
-        p[0] = p[1]
-
-    def p_statement_resource(p):
-        r'statement : resource'
-        p[0] = p[1]
-
-    def p_statement_class(p):
-        r'statement : class'
-        p[0] = p[1]
-
     def p_resource(p):
         r'resource : ID LBRACKET STRING COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
@@ -352,6 +346,22 @@ def parser_yacc(script):
 
     def p_parameter_default_without_type(p):
         r'parameter : ID EQUAL expression'
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
+
+    def p_parameter_extra(p):
+        r'parameter : ID ARITH_MUL ID EQUAL expression'
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
+
+    def p_parameter_no_default_extra(p):
+        r'parameter : ID ARITH_MUL ID'
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], "")
+
+    def p_parameter_only_name_extra(p):
+        r'parameter : ARITH_MUL ID'
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], "")
+
+    def p_parameter_default_without_type_extra(p):
+        r'parameter : ARITH_MUL ID EQUAL expression'
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
 
     def p_attributes(p):
@@ -414,6 +424,10 @@ def parser_yacc(script):
     ### Expressions ###
     def p_expression(p):
         'expression : value'
+        p[0] = p[1]
+
+    def p_expression_function_call(p):
+        r'expression : function_call'
         p[0] = p[1]
 
     def p_expression_paren(p):
@@ -522,6 +536,64 @@ def parser_yacc(script):
     def p_expression_splat(p):
         r'expression : ARITH_MUL expression %prec ARRAY_SPLAT'
         p[0] = Operation((p[2],), p[1])
+
+    # Function calls
+    def p_function_call_prefix(p):
+        r'function_call : ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], p[3], None)
+
+    def p_function_call_prefix_lambda(p):
+        r'function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], p[3], p[5])
+
+    def p_function_call_chained(p):
+        r'function_call : expression DOT ID %prec NO_LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3], [p[1]], None)
+
+    def p_function_call_chained_args(p):
+        r'function_call : expression DOT ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3], [p[1]] + p[5], None) 
+
+    def p_function_call_chained_lambda(p):
+        r'function_call : expression DOT ID lambda %prec LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3], [p[1]], p[4])
+
+    def p_function_call_chained_lambda_args(p):
+        r'function_call : expression DOT ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3], [p[1]] + p[5], p[7]) 
+
+    def p_lambda(p):
+        r'lambda : BAR parameters BAR LBRACKET block RBRACKET'
+        p[0] = Lambda(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[5])
+
+    ### Statements ###
+    # The statements are here because they need to be below the expressions
+    # in order to have the correct behaviour when solving the reduce/reduce conflicts
+    def p_statement_function_call(p):
+        r'statement : function_call'
+        p[0] = p[1]
+
+    def p_statement_assignment(p):
+        r'statement : assignment'
+        p[0] = p[1]
+
+    def p_statement_node(p):
+        r'statement : node'
+        p[0] = p[1]
+
+    def p_statement_resource(p):
+        r'statement : resource'
+        p[0] = p[1]
+
+    def p_statement_class(p):
+        r'statement : class'
+        p[0] = p[1]
 
     ### Values ###
     def p_value_hash(p):
