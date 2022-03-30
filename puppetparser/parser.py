@@ -67,9 +67,18 @@ def parser_yacc(script):
         'CMP_REGEX_MATCH',
         'CMP_REGEX_NOT_MATCH',
         'CMP_IN',
+        # Boolean operators
         'BOOL_AND',
         'BOOL_OR',
         'BOOL_NOT',
+        # Arithmetic operators
+        'ARITH_ADD',
+        'ARITH_SUB',
+        'ARITH_DIV',
+        'ARITH_MUL',
+        'ARITH_MOD',
+        'ARITH_LSHIFT',
+        'ARITH_RSHIFT'
     )
 
     keywords = {
@@ -117,8 +126,8 @@ def parser_yacc(script):
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
     t_COMMA = r','
-    t_INTEGER = r'-?(0|[1-9]\d*)'
-    t_FLOAT = r'(-?(0|[1-9]\d*)(\.\d+)?)'
+    t_INTEGER = r'(0|[1-9]\d*)'
+    t_FLOAT = r'((0|[1-9]\d*)(\.\d+)?)'
     t_REGEX = r'\/.*\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
@@ -130,6 +139,13 @@ def parser_yacc(script):
     t_CMP_REGEX_NOT_MATCH = r'!~'
     t_EQUAL = r'\='
     t_BOOL_NOT = r'!'
+    t_ARITH_ADD = r'\+'
+    t_ARITH_SUB = r'-'
+    t_ARITH_DIV = r'\/'
+    t_ARITH_MUL = r'\*'
+    t_ARITH_MOD = r'%'
+    t_ARITH_LSHIFT = r'<<'
+    t_ARITH_RSHIFT = r'>>'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -171,7 +187,7 @@ def parser_yacc(script):
         return t
 
     def t_sci_not_FLOAT(t):
-        r'(-?(0|[1-9]\d*)(\.\d+)?(e-?(0|[1-9]\d*))?)'
+        r'((0|[1-9]\d*)(\.\d+)?(e-?(0|[1-9]\d*))?)'
         t.type = "FLOAT"
         return t
 
@@ -203,11 +219,14 @@ def parser_yacc(script):
         ('left', 'EQUAL'),
         ('left', 'BOOL_OR'),
         ('left', 'BOOL_AND'),
-        ('left', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
-        ('left', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
+        ('nonassoc', 'CMP_LESS_THAN', 'CMP_GREATER_THAN', 'CMP_LESS_THAN_OR_EQUAL', 'CMP_GREATER_THAN_OR_EQUAL'),
+        ('nonassoc', 'CMP_EQUAL', 'CMP_NOT_EQUAL'),
+        ('left', 'ARITH_ADD', 'ARITH_SUB'),
+        ('left', 'ARITH_MUL', 'ARITH_DIV', 'ARITH_MOD'),
         ('left', 'CMP_REGEX_MATCH', 'CMP_REGEX_NOT_MATCH'),
         ('left', 'CMP_IN'),
-        ('left', 'BOOL_NOT'),
+        ('right', 'ARITH_MINUS'),
+        ('right', 'BOOL_NOT'),
     )
 
     def p_program(p):
@@ -451,6 +470,39 @@ def parser_yacc(script):
     def p_expression_not(p):
         r'expression : BOOL_NOT expression'
         p[0] = Operation((p[2],), p[1])
+
+    ## Arithmetic
+    def p_expression_negation(p):
+        r'expression : ARITH_SUB expression %prec ARITH_MINUS'
+        p[0] = Operation((p[2],), p[1])
+
+    def p_expression_addition(p):
+        r'expression : expression ARITH_ADD expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_subtraction(p):
+        r'expression : expression ARITH_SUB expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_division(p):
+        r'expression : expression ARITH_DIV expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_multiplication(p):
+        r'expression : expression ARITH_MUL expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_modulo(p):
+        r'expression : expression ARITH_MOD expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_left_shift(p):
+        r'expression : expression ARITH_LSHIFT expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_expression_right_shift(p):
+        r'expression : expression ARITH_RSHIFT expression'
+        p[0] = Operation((p[1], p[3]), p[2])
 
     ### Values ###
     def p_value_hash(p):
