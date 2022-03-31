@@ -71,3 +71,42 @@ class FunctionCall(CodeElement):
         self.name = name
         self.arguments = arguments
         self.lamb = lamb
+
+class If(CodeElement):
+    def __init__(self, line: int, col: int, condition: CodeElement, block: list, 
+            elseblock: 'If') -> None:
+        super().__init__(line, col)
+        self.condition = condition
+        self.block = block
+        self.elseblock = elseblock
+
+class Unless(CodeElement):
+    def __init__(self, line: int, col: int, condition: CodeElement, block: list, 
+            elseblock: 'Unless') -> None:
+        super().__init__(line, col)
+        self.condition = condition
+        self.block = block
+        self.elseblock = elseblock
+
+class Include(CodeElement):
+    def __init__(self, line: int, col: int, inc: list) -> None:
+        super().__init__(line, col)
+        self.inc = inc
+
+class Match(CodeElement):
+    def __init__(self, line: int, col: int, expressions: list, block: list) -> None:
+        super().__init__(line, col)
+        self.expressions = expressions
+        self.block = block
+
+class Case(CodeElement):
+    def __init__(self, line: int, col: int, control: CodeElement, matches: list[Match]) -> None:
+        super().__init__(line, col)
+        self.control = control
+        self.matches = matches
+
+class Selector(CodeElement):
+    def __init__(self, line: int, col: int, control: CodeElement, hash: dict) -> None:
+        super().__init__(line, col)
+        self.control = control
+        self.hash = hash

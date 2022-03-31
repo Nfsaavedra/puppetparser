@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Comment, FunctionCall, Lambda, Node, Operation, Parameter, PuppetClass, Regex, Resource
+from puppetparser.model import Assignment, Attribute, Case, Comment, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Regex, Resource, Selector, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -20,6 +20,7 @@ def parser_yacc(script):
         'DEFAULT', 
         'DEFINE', 
         'ELSIF',
+        'ELSE',
         'ENVIRONMENT',
         'FALSE',
         'FUNCTION',
@@ -55,6 +56,7 @@ def parser_yacc(script):
         'COMMA',
         'BAR',
         'DOT',
+        'QUESTION_MARK',
         # Identifiers
         'ID',
         # Special
@@ -81,7 +83,31 @@ def parser_yacc(script):
         'ARITH_MOD',
         'ARITH_LSHIFT',
         'ARITH_RSHIFT',
+        # Statement functions
+        'INCLUDE',
+        'REQUIRE',
+        'CONTAIN',
+        'TAG',
+        'DEBUG',
+        'INFO',
+        'NOTICE',
+        'WARNING',
+        'ERR',
+        'FAIL'
     )
+
+    statement_functions = {
+        'include' : 'INCLUDE',
+        'require' : 'REQUIRE',
+        'contain' : 'CONTAIN',
+        'tag' : 'TAG',
+        'debug' : 'DEBUG',
+        'info' : 'INFO',
+        'notice' : 'NOTICE',
+        'warning' : 'WARNING',
+        'err' : 'ERR',
+        'fail' : 'FAIL'
+    }
 
     keywords = {
         'and': 'BOOL_AND', 
@@ -93,6 +119,7 @@ def parser_yacc(script):
         'default': 'DEFAULT', 
         'define': 'DEFINE', 
         'elsif': 'ELSIF',
+        'else': 'ELSE',
         'environment': 'ENVIRONMENT',
         'false': 'FALSE',
         'function': 'FUNCTION',
@@ -125,6 +152,7 @@ def parser_yacc(script):
     t_RPAREN = r'\)'
     t_LPARENR = r'\['
     t_RPARENR = r'\]'
+    t_QUESTION_MARK = r'\?'
     t_BAR = r'\|'
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
@@ -198,7 +226,7 @@ def parser_yacc(script):
 
     def t_ID(t):
         r'[A-Za-z\$][a-z0-9\_\-\:]*'
-        t.type = keywords.get(t.value,'ID')
+        t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
         return t
 
     def t_STRING(t):
@@ -223,8 +251,8 @@ def parser_yacc(script):
     precedence = (
         ('nonassoc', 'NO_LAMBDA'),
         ('nonassoc', 'LAMBDA'),
-
         ('left', 'EQUAL'),
+        ('left', 'QUESTION_MARK'),
         ('left', 'DOT'),
         ('left', 'BOOL_OR'),
         ('left', 'BOOL_AND'),
@@ -238,6 +266,7 @@ def parser_yacc(script):
         ('right', 'ARRAY_SPLAT'),
         ('right', 'ARITH_MINUS'),
         ('right', 'BOOL_NOT'),
+        ('right', 'LPARENR'),
         ('left', 'LPAREN'),
         ('left', 'BAR'),
     )
@@ -446,6 +475,11 @@ def parser_yacc(script):
         r'expression : expression LPARENR INTEGER COMMA INTEGER RPARENR'
         p[0] = Operation((p[1], p[3], p[5]), p[2] + p[4] + p[6])
 
+    ## Selector ##
+    def p_expression_selector(p):
+        r'expression : expression QUESTION_MARK hash'
+        p[0] = Selector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
     ## Comparison ##
     def p_expression_equal(p):
         r'expression : expression CMP_EQUAL expression'
@@ -595,6 +629,69 @@ def parser_yacc(script):
         r'statement : class'
         p[0] = p[1]
 
+    def p_statement_if(p):
+        r'statement : if'
+        p[0] = p[1]
+
+    def p_statement_unless(p):
+        r'statement : unless'
+        p[0] = p[1]
+
+    def p_statement_case(p):
+        r'statement : case'
+        p[0] = p[1]
+
+    def p_statement_include(p):
+        r'statement : INCLUDE expressionlist'
+        p[0] = Include(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    # Conditional statements
+    def p_if(p):
+        r'if : IF expression LBRACKET block RBRACKET'
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+
+    def p_if_elsif(p):
+        r'if : IF expression LBRACKET block RBRACKET elsif'
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[6])
+
+    def p_elif(p):
+        r'elsif : ELSIF expression LBRACKET block RBRACKET'
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+
+    def p_elif_elif(p):
+        r'elsif : ELSIF expression LBRACKET block RBRACKET elsif'
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[6])
+
+    def p_else(p):
+        r'elsif : ELSE LBRACKET block RBRACKET'
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), None, p[3], None)
+
+    def p_unless(p):
+        r'unless : UNLESS expression LBRACKET block RBRACKET'
+        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+
+    def p_unless_else(p):
+        r'unless : UNLESS expression LBRACKET block RBRACKET ELSE LBRACKET block RBRACKET'
+
+        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], 
+            Unless(p.lineno(6), find_column(script, p.lexpos(6)), None, p[8], None))
+
+    def p_case(p):
+        r'case : CASE expression LBRACKET matches RBRACKET'
+        p[0] = Case(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+
+    def p_matches(p):
+        r'matches : match matches'
+        p[0] = [p[1]] + p[2]
+
+    def p_matches_empty(p):
+        r'matches : empty'
+        p[0] = []
+        
+    def p_match(p):
+        r'match : expressionlist COLON LBRACKET block RBRACKET'
+        p[0] = Match(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[4])
+
     ### Values ###
     def p_value_hash(p):
         r'value : hash'
@@ -630,10 +727,6 @@ def parser_yacc(script):
 
     def p_value_id(p):
         r'value : ID'
-        if not re.match(r"^[a-z][A-Za-z0-9\-\_]*$", p[1]) and \
-                not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and \
-                not re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = p[1]
 
     def p_empty(p):
