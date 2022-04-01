@@ -20,14 +20,15 @@ class TestResource(unittest.TestCase):
                     1 => "hello",
                     "kek" => 2
                 },
-                regex => /$\/*hello*/^/
+                regex => /$\/*hello*/^/,
+                undefined => undef
             } 
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 11)
+        self.assertEqual(len(res[0].attributes), 12)
         self.assertEqual(res[0].type, "test")
         self.assertEqual(res[0].title, "test123")
 
@@ -47,6 +48,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].attributes[10].value.content, "/$\/*hello*/^/")
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
+        self.assertEqual(res[0].attributes[11].value, None)
 
     def test_resource_without_comma(self):
         code = """
@@ -66,3 +68,15 @@ class TestResource(unittest.TestCase):
         res = parser_yacc(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
+
+    def test_stage(self):
+        code = """
+            stage { 'first':
+                before => Stage['main'],
+            }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res, list)
+        self.assertIsInstance(res[0], Resource)
+        self.assertEqual(res[0].type, "stage")

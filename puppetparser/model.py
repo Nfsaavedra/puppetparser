@@ -98,6 +98,11 @@ class Require(CodeElement):
         super().__init__(line, col)
         self.req = req
 
+class Tag(CodeElement):
+    def __init__(self, line: int, col: int, tags: list) -> None:
+        super().__init__(line, col)
+        self.tags = tags
+
 class Match(CodeElement):
     def __init__(self, line: int, col: int, expressions: list, block: list) -> None:
         super().__init__(line, col)

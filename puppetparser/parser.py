@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, Selector, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -285,6 +285,12 @@ def parser_yacc(script):
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = (p[1], p[3], "")
+
+    def p_class_header_no_parameters(p):
+        r'class_header : ID'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+        p[0] = (p[1], [], "")
 
     def p_class_header_inherits(p):
         r'class_header : ID LPAREN parameters RPAREN INHERITS ID'
@@ -655,6 +661,10 @@ def parser_yacc(script):
         r'statement : REQUIRE expressionlist'
         p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
+    def p_statement_tag(p):
+        r'statement : TAG expressionlist'
+        p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
     # Conditional statements
     def p_if(p):
         r'if : IF expression LBRACKET block RBRACKET'
@@ -738,6 +748,10 @@ def parser_yacc(script):
     def p_value_id(p):
         r'value : ID'
         p[0] = p[1]
+
+    def p_value_undef(p):
+        r'value : UNDEF'
+        p[0] = None
 
     def p_empty(p):
         r'empty : '
