@@ -93,6 +93,11 @@ class Include(CodeElement):
         super().__init__(line, col)
         self.inc = inc
 
+class Require(CodeElement):
+    def __init__(self, line: int, col: int, req: list) -> None:
+        super().__init__(line, col)
+        self.req = req
+
 class Match(CodeElement):
     def __init__(self, line: int, col: int, expressions: list, block: list) -> None:
         super().__init__(line, col)
@@ -110,3 +115,9 @@ class Selector(CodeElement):
         super().__init__(line, col)
         self.control = control
         self.hash = hash
+
+class Reference(CodeElement):
+    def __init__(self, line: int, col: int, type: str, references: list) -> None:
+        super().__init__(line, col)
+        self.type: str = type
+        self.references: list = references
