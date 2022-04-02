@@ -14,14 +14,13 @@ def parser_yacc(script):
         # Keywords
         'APPLICATION', 
         'ATTR', 
-        'CASE', 
+        'CASE',
         'COMPONENT', 
         'CONSUMES', 
         'DEFAULT', 
         'DEFINE', 
         'ELSIF',
         'ELSE',
-        'ENVIRONMENT',
         'FALSE',
         'FUNCTION',
         'IF',
@@ -130,7 +129,6 @@ def parser_yacc(script):
         'define': 'DEFINE', 
         'elsif': 'ELSIF',
         'else': 'ELSE',
-        'environment': 'ENVIRONMENT',
         'false': 'FALSE',
         'function': 'FUNCTION',
         'if': 'IF',
@@ -411,6 +409,10 @@ def parser_yacc(script):
 
     def p_change_resource_collector(p):
         r'resource : resource_collector LBRACKET attributes RBRACKET'
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
+
+    def p_resource_default(p):
+        r'resource : ID_TYPE LBRACKET attributes RBRACKET'
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
 
     def p_resource_declaration(p):

@@ -181,3 +181,17 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].name, "apache::vhost")
         self.assertEqual(res[0].parameters[3].type, "String")
         self.assertEqual(res[0].block[3].type, "file")
+
+    def test_resource_default(self):
+        code = """
+        Exec {
+            path        => '/usr/bin:/bin:/usr/sbin:/sbin',
+            environment => 'RUBYLIB=/opt/puppetlabs/puppet/lib/ruby/site_ruby/2.1.0/',
+            logoutput   => true,
+            timeout     => 180,
+        }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[0], Resource)
+        self.assertEqual(res[0].type, "Exec")
