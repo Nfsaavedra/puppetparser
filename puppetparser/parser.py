@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -377,6 +377,14 @@ def parser_yacc(script):
         r'resource : reference LBRACKET attributes RBRACKET'
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
 
+    def p_resource_declaration(p):
+        r'resource : DEFINE ID LPAREN parameters RPAREN LBRACKET block RBRACKET'
+        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[7])
+
+    def p_resource_declaration_no_parameters(p):
+        r'resource : DEFINE ID LBRACKET block RBRACKET'
+        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], [], p[4])
+
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
         p[0] = [p[1]] + p[3]
@@ -442,10 +450,30 @@ def parser_yacc(script):
         p[0] = []
 
     def p_attribute(p):
-        r'attribute : ID HASH_ROCKET expression'
+        r'attribute : attributekey HASH_ROCKET expression'
         if not re.match(r"^[a-z]+$", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
+    def p_attributekey(p):
+        r'attributekey : ID'
+        p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
+
+    def p_attributekey_require(p):
+        r'attributekey : REQUIRE'
+        p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
+
+    def p_attributekey_include(p):
+        r'attributekey : INCLUDE'
+        p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
+
+    def p_attributekey_tag(p):
+        r'attributekey : TAG'
+        p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_array(p):
         r'array : LPARENR expressionlist RPARENR'

@@ -18,6 +18,13 @@ class Resource(CodeElement):
         self.title: str = title
         self.attributes: list[Attribute] = attributes
 
+class ResourceDeclaration(CodeElement):
+    def __init__(self, line: int, col: int, name: str, parameters: list, block: list) -> None:
+        super().__init__(line, col)
+        self.name = name
+        self.parameters = parameters
+        self.block = block
+
 class Parameter(CodeElement):
     def __init__(self, line: int, col: int, type: str, name: str, default) -> None:
         super().__init__(line, col)
