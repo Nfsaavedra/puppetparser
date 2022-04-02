@@ -90,3 +90,53 @@ class TestResource(unittest.TestCase):
         res = parser_yacc(code)[0]
         self.assertIsInstance(res[1], Resource)
         self.assertIsInstance(res[1].type, Reference)
+
+    def test_attributes_from_hash(self):
+        code = """
+            file { "/etc/passwd":
+                ensure => file,
+                *      => $file_ownership,
+            }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[0], Resource)
+        self.assertIsInstance(res[0].attributes[1], Attribute)
+        self.assertEqual(res[0].attributes[1].key, "*")
+
+    def test_array_of_titles(self):
+        code = """
+            $rc_dirs = [
+                '/etc/rc.d',       '/etc/rc.d/init.d','/etc/rc.d/rc0.d',
+                '/etc/rc.d/rc1.d', '/etc/rc.d/rc2.d', '/etc/rc.d/rc3.d',
+                '/etc/rc.d/rc4.d', '/etc/rc.d/rc5.d', '/etc/rc.d/rc6.d',
+            ]
+
+            file { $rc_dirs:
+                ensure => directory,
+                owner  => 'root',
+                group  => 'root',
+                mode   => '0755',
+            }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[1], Resource)
+        self.assertEqual(res[1].title, "$rc_dirs")
+
+    def test_add_attributes(self):
+        code = """
+        file {'/etc/passwd':
+            ensure => file,
+        }
+
+        File['/etc/passwd'] {
+            owner => 'root',
+            group => 'root',
+            mode  => '0640',
+        }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[1], Resource)
+        self.assertEqual(res[1].title, None)

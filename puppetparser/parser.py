@@ -227,12 +227,12 @@ def parser_yacc(script):
         return t
 
     def t_ID(t):
-        r'[a-z\$][a-z0-9\_\-\:]*'
+        r'[a-z\$]((::)?[a-z0-9\_\-]*)*'
         t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
         return t
 
     def t_ID_TYPE(t):
-        r'[A-Z\$][a-z0-9\_\-\:]*'
+        r'[A-Z\$]((::)?[a-z0-9\_\-]*)*'
         if t.value == 'Sensitive':
             t.type = 'SENSITIVE'
         return t
@@ -362,16 +362,20 @@ def parser_yacc(script):
         p[0] = []
 
     def p_resource(p):
-        r'resource : ID LBRACKET STRING COLON attributes RBRACKET'
+        r'resource : ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
 
     def p_abstract_resource(p):
-        r'resource : reference LBRACKET STRING COLON attributes RBRACKET'
+        r'resource : reference LBRACKET expression COLON attributes RBRACKET'
         if p[1].type != "Resource":
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
+
+    def p_change_resource(p):
+        r'resource : reference LBRACKET attributes RBRACKET'
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
 
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
@@ -420,6 +424,14 @@ def parser_yacc(script):
     def p_attributes(p):
         r'attributes : attribute COMMA attributes'
         p[0] = [p[1]] + p[3]
+
+    def p_attributes_splat(p):
+        r'attributes : attributes ARITH_MUL HASH_ROCKET expression'
+        p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
+
+    def p_attributes_splat(p):
+        r'attributes : attributes ARITH_MUL HASH_ROCKET expression COMMA'
+        p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
 
     def p_attributes_single(p):
         r'attributes : attribute'
