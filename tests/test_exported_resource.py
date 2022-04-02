@@ -4,7 +4,7 @@ from puppetparser.parser import parser_yacc
 from puppetparser.model import Resource
 
 class TestClass(unittest.TestCase):
-    def test_exportedresource(self):
+    def test_exported_resource(self):
         code = """
             @@nagios_service { "check_zfs${::hostname}":
                 use                 => 'generic-service',

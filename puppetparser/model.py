@@ -12,7 +12,8 @@ class Attribute(CodeElement):
         self.value: str = value
 
 class Resource(CodeElement):
-    def __init__(self, line: int, col: int, type: Union[str, 'Reference'], title: str, attributes: list[Attribute]) -> None:
+    def __init__(self, line: int, col: int, type: Union[str, 'Reference', 'ResourceCollector'], 
+            title: str, attributes: list[Attribute]) -> None:
         super().__init__(line, col)
         self.type = type
         self.title: str = title
@@ -164,3 +165,9 @@ class Function(CodeElement):
         self.parameters = parameters
         self.return_type = return_type
         self.body = body
+
+class ResourceCollector(CodeElement):
+    def __init__(self, line: int, col: int, resource_type: str, search) -> None:
+        super().__init__(line, col)
+        self.resource_type = resource_type
+        self.search = search

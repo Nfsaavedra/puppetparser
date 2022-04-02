@@ -4,7 +4,7 @@ from puppetparser.parser import parser_yacc
 from puppetparser.model import Realize, Resource
 
 class TestClass(unittest.TestCase):
-    def test_virtualresource(self):
+    def test_virtual_resource(self):
         code = """
             @user {'deploy':
                 uid     => 2004,

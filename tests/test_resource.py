@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parser_yacc
-from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceDeclaration
+from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceCollector, ResourceDeclaration
 
 class TestResource(unittest.TestCase):
     def test_resource(self):
@@ -135,11 +135,20 @@ class TestResource(unittest.TestCase):
             group => 'root',
             mode  => '0640',
         }
+
+        File <| tag == 'base::linux' |> {
+            owner => 'root',
+            group => 'root',
+            mode => '0640',
+        }
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res[1], Resource)
         self.assertEqual(res[1].title, None)
+        self.assertIsInstance(res[2], Resource)
+        self.assertIsInstance(res[2].type, ResourceCollector)
+        self.assertEqual(res[2].type.search.arguments[0], "tag")
 
     def test_define_resource(self):
         code = """

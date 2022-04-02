@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -46,6 +46,8 @@ def parser_yacc(script):
         # SUGAR SYNTAX
         'LBRACKET',
         'RBRACKET',
+        'LANGLEBRACKET',
+        'RANGLEBRACKET',
         'LPAREN',
         'RPAREN',
         'LPARENR',
@@ -187,6 +189,8 @@ def parser_yacc(script):
     t_ARITH_RSHIFT = r'>>'
     t_CHAINING_RIGHT = r'->|~>'
     t_CHAINING_LEFT = r'<-|<~'
+    t_LANGLEBRACKET = r'\<\|'
+    t_RANGLEBRACKET = r'\|\>'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -383,13 +387,13 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
 
-    def p_virtualresource(p):
+    def p_virtual_resource(p):
         r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@" + p[2], p[4], p[6])
 
-    def p_exportedresource(p):
+    def p_exported_resource(p):
         r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
@@ -405,6 +409,10 @@ def parser_yacc(script):
         r'resource : reference LBRACKET attributes RBRACKET'
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
 
+    def p_change_resource_collector(p):
+        r'resource : resource_collector LBRACKET attributes RBRACKET'
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
+
     def p_resource_declaration(p):
         r'resource : DEFINE ID LPAREN parameters RPAREN LBRACKET block RBRACKET'
         p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[7])
@@ -412,6 +420,10 @@ def parser_yacc(script):
     def p_resource_declaration_no_parameters(p):
         r'resource : DEFINE ID LBRACKET block RBRACKET'
         p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], [], p[4])
+
+    def p_resource_collector(p):
+        r'resource_collector : ID_TYPE LANGLEBRACKET expression RANGLEBRACKET'
+        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
@@ -735,6 +747,10 @@ def parser_yacc(script):
         r'statement : resource'
         p[0] = p[1]
 
+    def p_statement_resource_collector(p):
+        r'statement : resource_collector'
+        p[0] = p[1]
+
     def p_statement_class(p):
         r'statement : class'
         p[0] = p[1]
@@ -835,7 +851,7 @@ def parser_yacc(script):
         r'statement : FAIL LPAREN expressionlist RPAREN'
         p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
 
-    def p_statement_realize(p):
+    def p_statement_realize_paren(p):
         r'statement : REALIZE LPAREN expressionlist RPAREN'
         p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
@@ -950,6 +966,10 @@ def parser_yacc(script):
     def p_value_undef(p):
         r'value : UNDEF'
         p[0] = None
+
+    # FIXME
+    for k, v in statement_functions.items():
+        exec(f"def p_value_{k}(p):\n\tr'value : {v}'\n\tp[0] = p[1]")
 
     def p_empty(p):
         r'empty : '
