@@ -122,6 +122,11 @@ class Fail(CodeElement):
         super().__init__(line, col)
         self.args = args
 
+class Realize(CodeElement):
+    def __init__(self, line: int, col: int, classes: list) -> None:
+        super().__init__(line, col)
+        self.classes = classes
+
 class Tag(CodeElement):
     def __init__(self, line: int, col: int, tags: list) -> None:
         super().__init__(line, col)

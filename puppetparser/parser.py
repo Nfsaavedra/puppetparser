@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -43,7 +43,7 @@ def parser_yacc(script):
         'INTEGER',
         'FLOAT',
         'REGEX',
-        # SYNTAX SUGAR
+        # SUGAR SYNTAX
         'LBRACKET',
         'RBRACKET',
         'LPAREN',
@@ -57,6 +57,7 @@ def parser_yacc(script):
         'BAR',
         'DOT',
         'QUESTION_MARK',
+        'AT',
         # Identifiers
         'ID',
         'ID_TYPE',
@@ -95,7 +96,11 @@ def parser_yacc(script):
         'NOTICE',
         'WARNING',
         'ERR',
-        'FAIL'
+        'FAIL',
+        'REALIZE',
+        # Chaining arrows
+        'CHAINING_LEFT',
+        'CHAINING_RIGHT'
     )
 
     statement_functions = {
@@ -108,7 +113,8 @@ def parser_yacc(script):
         'notice' : 'NOTICE',
         'warning' : 'WARNING',
         'err' : 'ERR',
-        'fail' : 'FAIL'
+        'fail' : 'FAIL',
+        'realize' : 'REALIZE'
     }
 
     keywords = {
@@ -156,6 +162,7 @@ def parser_yacc(script):
     t_RPARENR = r'\]'
     t_QUESTION_MARK = r'\?'
     t_BAR = r'\|'
+    t_AT = r'@'
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
     t_COMMA = r','
@@ -178,6 +185,8 @@ def parser_yacc(script):
     t_ARITH_MOD = r'%'
     t_ARITH_LSHIFT = r'<<'
     t_ARITH_RSHIFT = r'>>'
+    t_CHAINING_RIGHT = r'->|~>'
+    t_CHAINING_LEFT = r'<-|<~'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -373,6 +382,12 @@ def parser_yacc(script):
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
+
+    def p_virtualresource(p):
+        r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@" + p[2], p[4], p[6])
 
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
@@ -771,6 +786,54 @@ def parser_yacc(script):
     def p_statement_fail(p):
         r'statement : FAIL expressionlist'
         p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_realize(p):
+        r'statement : REALIZE expressionlist'
+        p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_include_paren(p):
+        r'statement : INCLUDE LPAREN expressionlist RPAREN'
+        p[0] = Include(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_require_paren(p):
+        r'statement : REQUIRE LPAREN expressionlist RPAREN'
+        p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_contain_paren(p):
+        r'statement : CONTAIN LPAREN expressionlist RPAREN'
+        p[0] = Contain(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_tag_paren(p):
+        r'statement : TAG LPAREN expressionlist RPAREN'
+        p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_debug_paren(p):
+        r'statement : DEBUG LPAREN expressionlist RPAREN'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_info_paren(p):
+        r'statement : INFO LPAREN expressionlist RPAREN'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_notice_paren(p):
+        r'statement : NOTICE LPAREN expressionlist RPAREN'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_warning_paren(p):
+        r'statement : WARNING LPAREN expressionlist RPAREN'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_err_paren(p):
+        r'statement : ERR LPAREN expressionlist RPAREN'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_fail_paren(p):
+        r'statement : FAIL LPAREN expressionlist RPAREN'
+        p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+
+    def p_statement_realize(p):
+        r'statement : REALIZE LPAREN expressionlist RPAREN'
+        p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     # Function declaration
     def p_function(p):
