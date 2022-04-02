@@ -126,3 +126,12 @@ class Reference(CodeElement):
         super().__init__(line, col)
         self.type: str = type
         self.references: list = references
+
+class Function(CodeElement):
+    def __init__(self, line: int, col: int, name: str, parameters: list, 
+            return_type, body: list) -> None:
+        super().__init__(line, col)
+        self.name = name
+        self.parameters = parameters
+        self.return_type = return_type
+        self.body = body

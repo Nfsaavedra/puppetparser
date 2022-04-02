@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -59,6 +59,8 @@ def parser_yacc(script):
         'QUESTION_MARK',
         # Identifiers
         'ID',
+        'ID_TYPE',
+        'SENSITIVE',
         # Special
         'CLASS',
         # Comparison operators
@@ -225,8 +227,14 @@ def parser_yacc(script):
         return t
 
     def t_ID(t):
-        r'[A-Za-z\$][a-z0-9\_\-\:]*'
+        r'[a-z\$][a-z0-9\_\-\:]*'
         t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
+        return t
+
+    def t_ID_TYPE(t):
+        r'[A-Z\$][a-z0-9\_\-\:]*'
+        if t.value == 'Sensitive':
+            t.type = 'SENSITIVE'
         return t
 
     def t_STRING(t):
@@ -345,6 +353,10 @@ def parser_yacc(script):
         r'block : statement block'
         p[0] = [p[1]] + p[2]
 
+    def p_block_return(p):
+        r'block : expression'
+        p[0] = [p[1]]
+
     def p_block_empty(p):
         r'block : empty'
         p[0] = []
@@ -368,11 +380,11 @@ def parser_yacc(script):
         p[0] = []
 
     def p_parameter(p):
-        r'parameter : ID ID EQUAL expression'
+        r'parameter : data_type ID EQUAL expression'
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
 
     def p_parameter_no_default(p):
-        r'parameter : ID ID'
+        r'parameter : data_type ID'
         p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], "")
 
     def p_parameter_only_name(p):
@@ -445,12 +457,20 @@ def parser_yacc(script):
         p[0] = (p[1], p[3])
 
     def p_expressionlist(p):
-        r'expressionlist : expression COMMA expressionlist'
+        r'expressionlist : expressionvalue COMMA expressionlist'
         p[0] = [p[1]] + p[3]
 
-    def p_valuelist_single(p):
-        r'expressionlist : expression'
+    def p_expressionlist_single(p):
+        r'expressionlist : expressionvalue'
         p[0] = [p[1]]
+
+    def p_expressionvalue(p):
+        r'expressionvalue : expression'
+        p[0] = p[1]
+
+    def p_expressionvalue_type(p):
+        r'expressionvalue : ID_TYPE'
+        p[0] = p[1]
 
     def p_expressionlist_empty(p):
         r'expressionlist : empty'
@@ -568,20 +588,24 @@ def parser_yacc(script):
         r'expression : expression ARITH_RSHIFT expression'
         p[0] = Operation((p[1], p[3]), p[2])
 
-    # Array Operations
+    ## Array Operations
     def p_expression_splat(p):
         r'expression : ARITH_MUL expression %prec ARRAY_SPLAT'
         p[0] = Operation((p[2],), p[1])
 
-    def p_expression_access_and_reference(p):
+    def p_expression_access(p):
         r'expression : expression LPARENR expressionlist RPARENR'
-        if (isinstance(p[1], str)) and p[1][0].isupper():
-            p[0] = Reference(p.lineno(1), find_column(script, p.lexpos(1)),
-                p[1], p[3])
-        elif (len(p[3]) == 1):
-            p[0] = Operation((p[1], p[3]), p[2] + p[4])
-        else:
-            pass #FIXME
+        p[0] = Operation((p[1], p[3]), p[2] + p[4])
+
+    ## Reference
+    def p_expression_reference(p):
+        r'expression : reference'
+        p[0] = p[1]
+
+    def p_reference(p):
+        r'reference : ID_TYPE LPARENR expressionlist RPARENR'
+        p[0] = Reference(p.lineno(1), find_column(script, p.lexpos(1)),
+                p[1], p[3])   
 
     # Function calls
     def p_function_call_prefix(p):
@@ -618,9 +642,23 @@ def parser_yacc(script):
         r'lambda : BAR parameters BAR LBRACKET block RBRACKET'
         p[0] = Lambda(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[5])
 
+    def p_sensitive(p):
+        r'function_call : SENSITIVE LPAREN STRING RPAREN'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], (p[3],), None) 
+
+    def p_sensitive_id(p):
+        r'function_call : SENSITIVE DOT ID LPAREN STRING RPAREN'
+        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], (p[5],), None) 
+
     ### Statements ###
     # The statements are here because they need to be below the expressions
     # in order to have the correct behaviour when solving the reduce/reduce conflicts
+    def p_statement_function(p):
+        r'statement : function'
+        p[0] = p[1]
+
     def p_statement_function_call(p):
         r'statement : function_call'
         p[0] = p[1]
@@ -664,6 +702,17 @@ def parser_yacc(script):
     def p_statement_tag(p):
         r'statement : TAG expressionlist'
         p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    # Function declaration
+    def p_function(p):
+        r'function : FUNCTION ID LPAREN parameters RPAREN LBRACKET block RBRACKET'
+        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)), p[2],
+                p[4], None, p[7])
+
+    def p_function_return(p):
+        r'function : FUNCTION ID LPAREN parameters RPAREN ARITH_RSHIFT data_type LBRACKET block RBRACKET '
+        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)), p[2],
+                p[4], p[7], p[9])
 
     # Conditional statements
     def p_if(p):
@@ -711,6 +760,15 @@ def parser_yacc(script):
     def p_match(p):
         r'match : expressionlist COLON LBRACKET block RBRACKET'
         p[0] = Match(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[4])
+
+    ### Data Type ###
+    def p_data_type(p):
+        r'data_type : ID_TYPE'
+        p[0] = p[1]
+
+    def p_data_type_reference(p):
+        r'data_type : reference'
+        p[0] = p[1]
 
     ### Values ###
     def p_value_hash(p):
