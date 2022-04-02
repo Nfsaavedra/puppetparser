@@ -107,6 +107,21 @@ class Require(CodeElement):
         super().__init__(line, col)
         self.req = req
 
+class Contain(CodeElement):
+    def __init__(self, line: int, col: int, cont: list) -> None:
+        super().__init__(line, col)
+        self.cont = cont
+
+class Debug(CodeElement):
+    def __init__(self, line: int, col: int, args: list) -> None:
+        super().__init__(line, col)
+        self.args = args
+
+class Fail(CodeElement):
+    def __init__(self, line: int, col: int, args: list) -> None:
+        super().__init__(line, col)
+        self.args = args
+
 class Tag(CodeElement):
     def __init__(self, line: int, col: int, tags: list) -> None:
         super().__init__(line, col)

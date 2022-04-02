@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Reference, Regex, Require, Resource, ResourceDeclaration, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -279,6 +279,8 @@ def parser_yacc(script):
         ('left', 'BAR'),
     )
 
+    start = 'program'
+
     def p_program(p):
         "program : block"
         p[0] = p[1]
@@ -437,7 +439,7 @@ def parser_yacc(script):
         r'attributes : attributes ARITH_MUL HASH_ROCKET expression'
         p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
 
-    def p_attributes_splat(p):
+    def p_attributes_splat_comma(p):
         r'attributes : attributes ARITH_MUL HASH_ROCKET expression COMMA'
         p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
 
@@ -460,20 +462,8 @@ def parser_yacc(script):
         p[0] = p[1]
         p.set_lineno(0, p.lineno(1))
 
-    def p_attributekey_require(p):
-        r'attributekey : REQUIRE'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
-
-    def p_attributekey_include(p):
-        r'attributekey : INCLUDE'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
-
-    def p_attributekey_tag(p):
-        r'attributekey : TAG'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
+    for k, v in statement_functions.items():
+        exec(f"def p_attributekey_{k}(p):\n\tr'attributekey : {v}'\n\tp[0] = p[1]\n\tp.set_lineno(0, p.lineno(1))")
 
     def p_array(p):
         r'array : LPARENR expressionlist RPARENR'
@@ -745,9 +735,37 @@ def parser_yacc(script):
         r'statement : REQUIRE expressionlist'
         p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
+    def p_statement_contain(p):
+        r'statement : CONTAIN expressionlist'
+        p[0] = Contain(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
     def p_statement_tag(p):
         r'statement : TAG expressionlist'
         p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_debug(p):
+        r'statement : DEBUG expressionlist'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_info(p):
+        r'statement : INFO expressionlist'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_notice(p):
+        r'statement : NOTICE expressionlist'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_warning(p):
+        r'statement : WARNING expressionlist'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_err(p):
+        r'statement : ERR expressionlist'
+        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+
+    def p_statement_fail(p):
+        r'statement : FAIL expressionlist'
+        p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     # Function declaration
     def p_function(p):
