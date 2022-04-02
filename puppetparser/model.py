@@ -1,3 +1,5 @@
+from typing import Union
+
 class CodeElement:
     def __init__(self, line: int, col: int) -> None:
         self.line: int = line
@@ -10,9 +12,9 @@ class Attribute(CodeElement):
         self.value: str = value
 
 class Resource(CodeElement):
-    def __init__(self, line: int, col: int, type: str, title: str, attributes: list[Attribute]) -> None:
+    def __init__(self, line: int, col: int, type: Union[str, 'Reference'], title: str, attributes: list[Attribute]) -> None:
         super().__init__(line, col)
-        self.type: str = type
+        self.type = type
         self.title: str = title
         self.attributes: list[Attribute] = attributes
 

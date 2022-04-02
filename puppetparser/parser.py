@@ -367,6 +367,12 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
 
+    def p_abstract_resource(p):
+        r'resource : reference LBRACKET STRING COLON attributes RBRACKET'
+        if p[1].type != "Resource":
+            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
+
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
         p[0] = [p[1]] + p[3]
@@ -805,6 +811,10 @@ def parser_yacc(script):
 
     def p_value_id(p):
         r'value : ID'
+        p[0] = p[1]
+
+    def p_value_type_id(p):
+        r'value : ID_TYPE'
         p[0] = p[1]
 
     def p_value_undef(p):

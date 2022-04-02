@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parser_yacc
-from puppetparser.model import Attribute, Regex, Resource
+from puppetparser.model import Attribute, Reference, Regex, Resource
 
 class TestResource(unittest.TestCase):
     def test_resource(self):
@@ -80,3 +80,13 @@ class TestResource(unittest.TestCase):
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(res[0].type, "stage")
+
+    def test_abstract_resource(self):
+        code = """
+            $mytype = File
+            Resource[$mytype] { "/tmp/foo": ensure => file, }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[1], Resource)
+        self.assertIsInstance(res[1].type, Reference)
