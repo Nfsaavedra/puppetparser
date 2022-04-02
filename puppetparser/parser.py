@@ -389,6 +389,12 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@" + p[2], p[4], p[6])
 
+    def p_exportedresource(p):
+        r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@@" + p[3], p[4], p[6])
+
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
         if p[1].type != "Resource":
@@ -473,8 +479,6 @@ def parser_yacc(script):
 
     def p_attribute(p):
         r'attribute : attributekey HASH_ROCKET expression'
-        if not re.match(r"^[a-z]+$", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_attributekey(p):
