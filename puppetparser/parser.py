@@ -310,6 +310,11 @@ def parser_yacc(script):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
         p[0] = (p[1], p[3], p[6])
 
+    def p_class_resource_declaration(p):
+        r'class : CLASS LBRACKET expression COLON attributes RBRACKET'
+        p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
+                p[3], None, None, p[5])
+
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)),  p[2], p[4])

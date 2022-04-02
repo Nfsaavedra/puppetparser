@@ -40,12 +40,12 @@ class Assignment(CodeElement):
 
 class PuppetClass(CodeElement):
     def __init__(self, line: int, col: int, name: str, 
-            block: list, inherits: str, parameters: list[Parameter]) -> None:
+            block: list, inherits: str, parameters: Union[list[Parameter], list[Attribute]]) -> None:
         super().__init__(line, col)
         self.name: str = name
         self.block: list = block
         self.inherits: str = inherits
-        self.parameters: list[Parameter] = parameters
+        self.parameters: Union[list[Parameter], list[Attribute]] = parameters
     
 class Node(CodeElement):
     def __init__(self, line: int, col: int, name: str, block: list) -> None:
