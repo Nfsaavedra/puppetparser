@@ -574,6 +574,18 @@ def parser_yacc(script):
         r'expressionlist : expressionvalue'
         p[0] = [p[1]]
 
+    def p_expressionlist_empty(p):
+        r'expressionlist : empty'
+        p[0] = []
+
+    def p_nonempty_expressionlist(p):
+        r'nonempty_expressionlist : expressionvalue COMMA expressionlist'
+        p[0] = [p[1]] + p[3]
+
+    def p_nonempty_expressionlist_single(p):
+        r'nonempty_expressionlist : expressionvalue'
+        p[0] = [p[1]]
+
     def p_expressionvalue(p):
         r'expressionvalue : expression'
         p[0] = p[1]
@@ -581,10 +593,6 @@ def parser_yacc(script):
     def p_expressionvalue_type(p):
         r'expressionvalue : ID_TYPE'
         p[0] = p[1]
-
-    def p_expressionlist_empty(p):
-        r'expressionlist : empty'
-        p[0] = []
 
     ### Expressions ###
     def p_expression(p):
@@ -840,47 +848,47 @@ def parser_yacc(script):
         p[0] = p[1]
 
     def p_statement_include(p):
-        r'statement : INCLUDE expressionlist'
+        r'statement : INCLUDE nonempty_expressionlist'
         p[0] = Include(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_require(p):
-        r'statement : REQUIRE expressionlist'
+        r'statement : REQUIRE nonempty_expressionlist'
         p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_contain(p):
-        r'statement : CONTAIN expressionlist'
+        r'statement : CONTAIN nonempty_expressionlist'
         p[0] = Contain(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_tag(p):
-        r'statement : TAG expressionlist'
+        r'statement : TAG nonempty_expressionlist'
         p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_debug(p):
-        r'statement : DEBUG expressionlist'
+        r'statement : DEBUG nonempty_expressionlist'
         p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_info(p):
-        r'statement : INFO expressionlist'
+        r'statement : INFO nonempty_expressionlist'
         p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_notice(p):
-        r'statement : NOTICE expressionlist'
+        r'statement : NOTICE nonempty_expressionlist'
         p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_warning(p):
-        r'statement : WARNING expressionlist'
+        r'statement : WARNING nonempty_expressionlist'
         p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_err(p):
-        r'statement : ERR expressionlist'
+        r'statement : ERR nonempty_expressionlist'
         p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_fail(p):
-        r'statement : FAIL expressionlist'
+        r'statement : FAIL nonempty_expressionlist'
         p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_realize(p):
-        r'statement : REALIZE expressionlist'
+        r'statement : REALIZE nonempty_expressionlist'
         p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_statement_include_paren(p):
