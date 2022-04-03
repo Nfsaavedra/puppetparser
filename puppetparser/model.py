@@ -177,3 +177,10 @@ class ResourceExpression(CodeElement):
         super().__init__(line, col)
         self.default = default
         self.resources = resources
+
+class Chaining(CodeElement):
+    def __init__(self, line: int, col: int, op1, op2, direction: str) -> None:
+        super().__init__(line, col)
+        self.op1 = op1
+        self.op2 = op2
+        self.direction = direction

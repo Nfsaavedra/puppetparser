@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Chaining, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -459,6 +459,10 @@ def parser_yacc(script):
         r'resource_collector : ID_TYPE LANGLEBRACKET expression RANGLEBRACKET'
         p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
+    def p_resource_collector_empty(p):
+        r'resource_collector : ID_TYPE LANGLEBRACKET RANGLEBRACKET'
+        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None)
+
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
         p[0] = [p[1]] + p[3]
@@ -758,6 +762,36 @@ def parser_yacc(script):
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[1], (p[5],), None) 
 
+    # Chaining arrows
+    def p_chaining_left(p):
+        'chaining : chaining_value CHAINING_LEFT chaining_value'
+        p[0] = Chaining(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], p[3], p[2])
+
+    def p_chaining_right(p):
+        'chaining : chaining_value CHAINING_RIGHT chaining_value'
+        p[0] = Chaining(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[1], p[3], p[2])
+
+    def p_chaining_value(p):
+        'chaining_value : chaining'
+        p[0] = p[1]
+
+    # FIXME probably here we need a chaning value only for references
+    # but this case is being handled by the rule below p_chaining_value_array
+
+    def p_chaining_value_array(p):
+        'chaining_value : expressionlist'
+        p[0] = p[1]
+
+    def p_chaining_value_resource(p):
+        'chaining_value : resource'
+        p[0] = p[1]
+
+    def p_chaining_value_collector(p):
+        'chaining_value : resource_collector'
+        p[0] = p[1]
+
     ### Statements ###
     # The statements are here because they need to be below the expressions
     # in order to have the correct behaviour when solving the reduce/reduce conflicts
@@ -799,6 +833,10 @@ def parser_yacc(script):
 
     def p_statement_case(p):
         r'statement : case'
+        p[0] = p[1]
+
+    def p_statement_chaining(p):
+        r'statement : chaining'
         p[0] = p[1]
 
     def p_statement_include(p):
