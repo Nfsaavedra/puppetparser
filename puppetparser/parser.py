@@ -472,7 +472,7 @@ def parser_yacc(script):
         p[0] = Operation((p[1], p[3]), p[2])
 
     def p_resource_collector_expression_and(p):
-        r'rc_collector_expression : rc_expression BOOL_AND rc_expression'
+        r'rc_expression : rc_expression BOOL_AND rc_expression'
         p[0] = Operation((p[1], p[3]), p[2])
 
     def p_resource_collector_expression_or(p):
@@ -816,11 +816,12 @@ def parser_yacc(script):
         'chaining_value : chaining'
         p[0] = p[1]
 
-    # FIXME probably here we need a chaning value only for references
-    # but this case is being handled by the rule below p_chaining_value_array
+    def p_chaining_value_reference(p):
+        'chaining_value : reference'
+        p[0] = p[1]
 
     def p_chaining_value_array(p):
-        'chaining_value : expressionlist'
+        'chaining_value : referencelist'
         p[0] = p[1]
 
     def p_chaining_value_resource(p):
@@ -830,6 +831,14 @@ def parser_yacc(script):
     def p_chaining_value_collector(p):
         'chaining_value : resource_collector'
         p[0] = p[1]
+
+    def p_referencelist(p):
+        r'referencelist : reference COMMA referencelist'
+        p[0] = [p[1]] + p[3]
+
+    def p_referencelist_single(p):
+        r'referencelist : reference'
+        p[0] = [p[1]]
 
     ### Statements ###
     # The statements are here because they need to be below the expressions

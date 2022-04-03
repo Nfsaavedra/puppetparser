@@ -11,10 +11,10 @@ class TestClass(unittest.TestCase):
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res[0], Chaining)
-        self.assertIsInstance(res[0].op1[0], Reference)
+        self.assertIsInstance(res[0].op1, Reference)
         self.assertIsInstance(res[0].op2, Chaining)
-        self.assertIsInstance(res[0].op2.op1[0], Reference)
-        self.assertIsInstance(res[0].op2.op2[0], Reference)
+        self.assertIsInstance(res[0].op2.op1, Reference)
+        self.assertIsInstance(res[0].op2.op2, Reference)
 
     def test_chaining_2(self):
         code = """
