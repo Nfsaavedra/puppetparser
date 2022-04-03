@@ -171,3 +171,9 @@ class ResourceCollector(CodeElement):
         super().__init__(line, col)
         self.resource_type = resource_type
         self.search = search
+
+class ResourceExpression(CodeElement):
+    def __init__(self, line: int, col: int, default: Resource, resources: list[Resource]) -> None:
+        super().__init__(line, col)
+        self.default = default
+        self.resources = resources

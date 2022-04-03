@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parser_yacc
-from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceCollector, ResourceDeclaration
+from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression
 
 class TestResource(unittest.TestCase):
     def test_resource(self):
@@ -195,3 +195,33 @@ class TestResource(unittest.TestCase):
         res = parser_yacc(code)[0]
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(res[0].type, "Exec")
+
+    def test_resource_expression(self):
+        code = """
+            file {
+                default:
+                    ensure => file,
+                    mode   => '0600',
+                    owner  => 'root',
+                    group  => 'root',
+                ;
+                '/etc/ssh_host_dsa_key':
+                ;
+                '/etc/ssh_host_key':
+                ;
+                '/etc/ssh_host_dsa_key.pub':
+                    mode => '0644',
+                ;
+                '/etc/ssh_host_key.pub':
+                    mode => '0644',
+                ;
+            }
+        """
+
+        res = parser_yacc(code)[0]
+        self.assertIsInstance(res[0], ResourceExpression)
+        self.assertIsInstance(res[0].default, Resource)
+        self.assertEqual(res[0].default.title, "default")
+        self.assertEqual(len(res[0].resources), 4)
+        for r in res[0].resources:
+            self.assertIsInstance(r, Resource)

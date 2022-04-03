@@ -54,22 +54,25 @@ class TestClass(unittest.TestCase):
             case $facts['os']['name'] {
                 'RedHat', 'CentOS':  { include role::redhat  } # Apply the redhat class
                 /^(Debian|Ubuntu)$/: { include role::debian  } # Apply the debian class
+                default:             { include role::generic } # Apply the generic class
             }
         """
 
         res = parser_yacc(code)[0]
         self.assertIsInstance(res[0], Case)
         self.assertIsInstance(res[0].control, Operation)
-        self.assertEqual(len(res[0].matches), 2)
+        self.assertEqual(len(res[0].matches), 3)
         self.assertEqual(res[0].matches[0].expressions[0], 'RedHat')
         self.assertIsInstance(res[0].matches[1].expressions[0], Regex)
         self.assertIsInstance(res[0].matches[1].block[0], Include)
+        self.assertEqual(res[0].matches[2].expressions[0], 'default')
 
     def test_selector(self):
         code = """
             $rootgroup = $facts['os']['family'] ? {
                 'Redhat'                    => 'wheel',
                 'Debian'                    => 'wheel',
+                 default                    => 'root',
             }
         """
 
@@ -80,5 +83,6 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].value.hash, {
             'Redhat': 'wheel', 
             'Debian': 'wheel',
+            'default': 'root'
         })
 

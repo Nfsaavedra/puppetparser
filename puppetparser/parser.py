@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, Selector, Tag, Unless
+from puppetparser.model import Assignment, Attribute, Case, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression, Selector, Tag, Unless
 
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
@@ -59,6 +59,7 @@ def parser_yacc(script):
         'DOT',
         'QUESTION_MARK',
         'AT',
+        'DOT_COMMA',
         # Identifiers
         'ID',
         'ID_TYPE',
@@ -166,6 +167,7 @@ def parser_yacc(script):
     t_HASH_ROCKET = r'=>'
     t_COLON = r'\:'
     t_COMMA = r','
+    t_DOT_COMMA = r';'
     t_DOT = r'\.'
     t_REGEX = r'\/.*\/'
     t_CMP_EQUAL = r'=='
@@ -380,10 +382,40 @@ def parser_yacc(script):
         p[0] = []
 
     def p_resource(p):
-        r'resource : ID LBRACKET expression COLON attributes RBRACKET'
+        r'resource : ID LBRACKET resource_body RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3][0], p[3][1])
+
+    def p_resource_expression(p):
+        r'resource : ID LBRACKET resource_list RBRACKET'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+        resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[2]), p[3])
+        default = None
+        for r in resources:
+            if r.title == "default":
+                default = r
+                break
+        resources = list(filter(lambda r: r.title != default, resources))
+
+        p[0] = ResourceExpression(p.lineno(1), find_column(script, p.lexpos(1)), default, resources)
+
+    def p_resource_list(p):
+        r'resource_list : resource_body DOT_COMMA resource_list'
+        p[0] = [p[1]] + p[3]
+
+    def p_resource_list_single(p):
+        r'resource_list : resource_body'
+        p[0] = [p[1]]
+
+    def p_resource_list_empty(p):
+        r'resource_list : empty'
+        p[0] = []
+
+    def p_resource_body(p):
+        r'resource_body : expression COLON attributes'
+        p[0] = (p[1], p[3], p.lineno(1), find_column(script, p.lexpos(1)))
 
     def p_virtual_resource(p):
         r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
@@ -968,6 +1000,10 @@ def parser_yacc(script):
     def p_value_undef(p):
         r'value : UNDEF'
         p[0] = None
+
+    def p_value_default(p):
+        r'value : DEFAULT'
+        p[0] = p[1]
 
     # FIXME
     for k, v in statement_functions.items():
