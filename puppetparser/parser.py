@@ -272,6 +272,8 @@ def parser_yacc(script):
     precedence = (
         ('nonassoc', 'NO_LAMBDA'),
         ('nonassoc', 'LAMBDA'),
+        ('right', 'CHAINING_RIGHT'),
+        ('right', 'CHAINING_LEFT'),
         ('left', 'EQUAL'),
         ('left', 'QUESTION_MARK'),
         ('left', 'DOT'),
@@ -610,7 +612,7 @@ def parser_yacc(script):
         p[0] = []
 
     def p_nonempty_expressionlist(p):
-        r'nonempty_expressionlist : expressionvalue COMMA expressionlist'
+        r'nonempty_expressionlist : expressionvalue COMMA nonempty_expressionlist'
         p[0] = [p[1]] + p[3]
 
     def p_nonempty_expressionlist_single(p):
@@ -816,13 +818,12 @@ def parser_yacc(script):
         'chaining_value : chaining'
         p[0] = p[1]
 
-    def p_chaining_value_reference(p):
-        'chaining_value : reference'
-        p[0] = p[1]
-
     def p_chaining_value_array(p):
         'chaining_value : referencelist'
-        p[0] = p[1]
+        if len(p[1]) == 1: 
+            p[0] = p[1][0]
+        else:
+            p[0] = p[1]
 
     def p_chaining_value_resource(p):
         'chaining_value : resource'
