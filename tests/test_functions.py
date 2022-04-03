@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Case, Function, FunctionCall, Parameter, Resource
 
 class TestClass(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "each")
         self.assertEqual(res[0].arguments[0], "$binaries")
@@ -26,7 +26,7 @@ class TestClass(unittest.TestCase):
             test($binaries)
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "test")
         self.assertEqual(res[0].arguments[0], "$binaries")
@@ -36,7 +36,7 @@ class TestClass(unittest.TestCase):
             test()
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "test")
 
@@ -50,7 +50,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "each")
         self.assertEqual(res[0].arguments[0], "$binaries")
@@ -62,7 +62,7 @@ class TestClass(unittest.TestCase):
             $binaries.test
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "test")
         self.assertEqual(res[0].arguments[0], "$binaries")
@@ -76,7 +76,7 @@ class TestClass(unittest.TestCase):
                 }
             }
         """
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], Function)
         self.assertEqual(res[0].name, "apache::bool2http")
         self.assertIsInstance(res[0].parameters[0], Parameter)

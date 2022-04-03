@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Include
 
 class TestClass(unittest.TestCase):
@@ -10,6 +10,6 @@ class TestClass(unittest.TestCase):
             include base::linux, apache
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Include)
         self.assertIsInstance(res[1], Include)

@@ -1,4 +1,4 @@
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 
 with open("test.pp", "r") as f:
-    print(parser_yacc(f.read()))
+    print(parse(f.read()))

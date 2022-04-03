@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Chaining, Reference, Resource, ResourceCollector
 
 class TestClass(unittest.TestCase):
@@ -9,7 +9,7 @@ class TestClass(unittest.TestCase):
         Package['ntp'] -> File['/etc/ntp.conf'] ~> Service['ntpd']
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
         self.assertIsInstance(res[0].op1, Reference)
         self.assertIsInstance(res[0].op2, Chaining)
@@ -32,7 +32,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
         self.assertIsInstance(res[0].op1, Resource)
         self.assertIsInstance(res[0].op2, Chaining)
@@ -44,7 +44,7 @@ class TestClass(unittest.TestCase):
         Yumrepo <| |> -> Package <| |>
         """
         
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
         self.assertIsInstance(res[0].op1, ResourceCollector)
         self.assertIsInstance(res[0].op2, ResourceCollector)

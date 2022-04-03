@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Realize, Resource
 
 class TestClass(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestClass(unittest.TestCase):
             realize(User['deploy'], User['zleslie'])
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(res[0].type, "@user")
         self.assertIsInstance(res[1], Realize)

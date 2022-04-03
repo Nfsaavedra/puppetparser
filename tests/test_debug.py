@@ -1,10 +1,10 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
-from puppetparser.model import Contain, Debug, Fail
+from puppetparser.parser import parse
+from puppetparser.model import Debug, Fail
 
 class TestClass(unittest.TestCase):
-    def test_contain(self):
+    def test_debug(self):
         code = """
             debug "DEBUG"
             info "INFO"
@@ -14,7 +14,7 @@ class TestClass(unittest.TestCase):
             fail "FAIL"
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         for stat in res[:-1]:
             self.assertIsInstance(stat, Debug)
         self.assertEqual(res[0].args[0], "DEBUG")

@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import PuppetClass, Comment
 
 class TestClass(unittest.TestCase):
@@ -27,7 +27,7 @@ Kek */
             }
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0], PuppetClass)
         self.assertEqual(len(comments), 4)
         for c in comments:

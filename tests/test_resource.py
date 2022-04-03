@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import InvalidPuppetScript, parse
 from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression
 
 class TestResource(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestResource(unittest.TestCase):
             } 
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(len(res[0].attributes), 12)
@@ -65,7 +65,7 @@ class TestResource(unittest.TestCase):
             } 
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
 
@@ -76,7 +76,7 @@ class TestResource(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(res[0].type, "stage")
@@ -87,9 +87,16 @@ class TestResource(unittest.TestCase):
             Resource[$mytype] { "/tmp/foo": ensure => file, }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[1], Resource)
         self.assertIsInstance(res[1].type, Reference)
+
+    def test_abstract_resource_error(self):
+        code = """
+            $mytype = File
+            Test[$mytype] { "/tmp/foo": ensure => file, }
+        """
+        self.assertRaises(InvalidPuppetScript, parse, code)
 
     def test_attributes_from_hash(self):
         code = """
@@ -99,7 +106,7 @@ class TestResource(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
         self.assertIsInstance(res[0].attributes[1], Attribute)
         self.assertEqual(res[0].attributes[1].key, "*")
@@ -120,7 +127,7 @@ class TestResource(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[1], Resource)
         self.assertEqual(res[1].title, "$rc_dirs")
 
@@ -143,7 +150,7 @@ class TestResource(unittest.TestCase):
         }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[1], Resource)
         self.assertEqual(res[1].title, None)
         self.assertIsInstance(res[2], Resource)
@@ -176,7 +183,7 @@ class TestResource(unittest.TestCase):
         }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], ResourceDeclaration)
         self.assertEqual(res[0].name, "apache::vhost")
         self.assertEqual(res[0].parameters[3].type, "String")
@@ -192,7 +199,7 @@ class TestResource(unittest.TestCase):
         }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(res[0].type, "Exec")
 
@@ -218,7 +225,7 @@ class TestResource(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], ResourceExpression)
         self.assertIsInstance(res[0].default, Resource)
         self.assertEqual(res[0].default.title, "default")

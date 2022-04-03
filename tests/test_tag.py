@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Tag
 
 class TestClass(unittest.TestCase):
@@ -16,6 +16,6 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[0].block[0], Tag)
         self.assertEqual(res[0].block[0].tags, ['us_mirror1', 'us_mirror2'])

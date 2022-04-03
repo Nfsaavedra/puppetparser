@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Operation, Resource
 
 class TestClass(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res, comments = parser_yacc(code)
+        res, comments = parse(code)
         self.assertIsInstance(res[1], Resource)
         self.assertIsInstance(res[1].attributes[0].value, Operation)
         self.assertEqual(res[1].attributes[0].value.operator, "*")

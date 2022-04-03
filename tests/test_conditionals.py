@@ -1,6 +1,6 @@
 import unittest
 
-from puppetparser.parser import parser_yacc
+from puppetparser.parser import parse
 from puppetparser.model import Assignment, Case, If, Include, Operation, Regex, Resource, Selector, Unless
 
 class TestClass(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], If)
         self.assertIsInstance(res[0].condition, Operation)
         self.assertIsInstance(res[0].block[0], Resource)
@@ -42,7 +42,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Unless)
         self.assertIsInstance(res[0].condition, Operation)
         self.assertIsInstance(res[0].block[0], Resource)
@@ -58,7 +58,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Case)
         self.assertIsInstance(res[0].control, Operation)
         self.assertEqual(len(res[0].matches), 3)
@@ -76,7 +76,7 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res = parser_yacc(code)[0]
+        res = parse(code)[0]
         self.assertIsInstance(res[0], Assignment)
         self.assertIsInstance(res[0].value, Selector)
         self.assertIsInstance(res[0].value.control, Operation)

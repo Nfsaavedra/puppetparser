@@ -3,11 +3,14 @@ from ply.yacc import yacc
 import re
 from puppetparser.model import Assignment, Attribute, Case, Chaining, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression, Selector, Tag, Unless
 
+class InvalidPuppetScript(Exception):
+    pass
+
 def find_column(input, pos):
     line_start = input.rfind('\n', 0, pos) + 1
     return (pos - line_start) + 1
 
-def parser_yacc(script):
+def parse(script):
     comments = []
 
     tokens = (
@@ -256,8 +259,7 @@ def parser_yacc(script):
         return t
 
     def t_ANY_error(t):
-        print(f'Illegal character {t.value[0]!r} ({t.lineno}, {find_column(script, t.lexpos)}).')
-        t.lexer.skip(1)
+        raise InvalidPuppetScript(f'Lexer error')
 
     lexer = lex()
     # Give the lexer some input
@@ -308,21 +310,21 @@ def parser_yacc(script):
     def p_class_header(p):
         r'class_header : ID LPAREN parameters RPAREN'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = (p[1], p[3], "")
 
     def p_class_header_no_parameters(p):
         r'class_header : ID'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = (p[1], [], "")
 
     def p_class_header_inherits(p):
         r'class_header : ID LPAREN parameters RPAREN INHERITS ID'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[6]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = (p[1], p[3], p[6])
 
     def p_class_resource_declaration(p):
@@ -346,17 +348,17 @@ def parser_yacc(script):
         r'assignment : ID EQUAL expression'
         if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and not \
                 re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_assignment_array(p):
         r'assignment : array EQUAL array'
         if len(p[1]) != len(p[3]):
-            print(f'Syntax error on line {p.lineno(1)}. Arrays must match sizes.')
+            raise InvalidPuppetScript(f'Syntax error')
         for id in p[1]:
             if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
                     re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
-                print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+                raise InvalidPuppetScript(f'Syntax error')
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_assignment_hash(p):
@@ -364,10 +366,10 @@ def parser_yacc(script):
         for id in p[1]:
             if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
                     re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
-                print(f'Syntax error on line {p.lineno(1)}: {p.value!r}.')
+                raise InvalidPuppetScript(f'Syntax error')
 
             if id not in p[3]:
-                print(f'Syntax error on line {p.lineno(1)}. The key must be present on the hash.')
+                raise InvalidPuppetScript(f'Syntax error')
 
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
@@ -386,7 +388,7 @@ def parser_yacc(script):
     def p_resource(p):
         r'resource : ID LBRACKET resource_list RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         if (len(p[3]) == 1):
             p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3][0][0], p[3][0][1])
         else:
@@ -419,19 +421,19 @@ def parser_yacc(script):
     def p_virtual_resource(p):
         r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@" + p[2], p[4], p[6])
 
     def p_exported_resource(p):
         r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@@" + p[3], p[4], p[6])
 
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
         if p[1].type != "Resource":
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
+            raise InvalidPuppetScript(f'Syntax error')
         p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
 
     def p_change_resource(p):
@@ -1081,7 +1083,7 @@ def parser_yacc(script):
         r'empty : '
     
     def p_error(p):
-        print(f'Syntax error at {p.value!r}')
+        raise InvalidPuppetScript(f'Syntax error')
 
     # Build the parser
     parser = yacc()
