@@ -456,12 +456,43 @@ def parser_yacc(script):
         p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], [], p[4])
 
     def p_resource_collector(p):
-        r'resource_collector : ID_TYPE LANGLEBRACKET expression RANGLEBRACKET'
+        r'resource_collector : ID_TYPE LANGLEBRACKET rc_expression RANGLEBRACKET'
         p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_resource_collector_empty(p):
         r'resource_collector : ID_TYPE LANGLEBRACKET RANGLEBRACKET'
         p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None)
+
+    def p_resource_collector_expression_equal(p):
+        r'rc_expression : rc_expression CMP_EQUAL rc_expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_resource_collector_expression_not_equal(p):
+        r'rc_expression : rc_expression CMP_NOT_EQUAL rc_expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_resource_collector_expression_and(p):
+        r'rc_collector_expression : rc_expression BOOL_AND rc_expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_resource_collector_expression_or(p):
+        r'rc_expression : rc_expression BOOL_OR rc_expression'
+        p[0] = Operation((p[1], p[3]), p[2])
+
+    def p_resource_collector_expression_paren(p):
+        r'rc_expression : LPAREN rc_expression RPAREN'
+        p[0] = p[2]
+
+    def p_resource_collector_expression_value(p):
+        r'rc_expression : rc_value'
+        p[0] = p[1]
+
+    def p_resource_collector_value(p):
+        r'rc_value : value'
+        p[0] = p[1]
+
+    for k, v in statement_functions.items():
+        exec(f"def p_resource_collector_value_{k}(p):\n\tr'rc_value : {v}'\n\tp[0] = p[1]")
 
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
@@ -1050,10 +1081,6 @@ def parser_yacc(script):
     def p_value_default(p):
         r'value : DEFAULT'
         p[0] = p[1]
-
-    # FIXME
-    for k, v in statement_functions.items():
-        exec(f"def p_value_{k}(p):\n\tr'value : {v}'\n\tp[0] = p[1]")
 
     def p_empty(p):
         r'empty : '
