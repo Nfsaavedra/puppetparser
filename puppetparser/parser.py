@@ -384,24 +384,21 @@ def parser_yacc(script):
         p[0] = []
 
     def p_resource(p):
-        r'resource : ID LBRACKET resource_body RBRACKET'
-        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3][0], p[3][1])
-
-    def p_resource_expression(p):
         r'resource : ID LBRACKET resource_list RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             print(f'Syntax error on line {p.lineno(1)}: {p.value}.')
-        resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[2]), p[3])
-        default = None
-        for r in resources:
-            if r.title == "default":
-                default = r
-                break
-        resources = list(filter(lambda r: r.title != default, resources))
+        if (len(p[3]) == 1):
+            p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3][0][0], p[3][0][1])
+        else:
+            resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[2]), p[3])
+            default = None
+            for r in resources:
+                if r.title == "default":
+                    default = r
+                    break
+            resources = list(filter(lambda r: r.title != default, resources))
 
-        p[0] = ResourceExpression(p.lineno(1), find_column(script, p.lexpos(1)), default, resources)
+            p[0] = ResourceExpression(p.lineno(1), find_column(script, p.lexpos(1)), default, resources)
 
     def p_resource_list(p):
         r'resource_list : resource_body DOT_COMMA resource_list'
@@ -544,14 +541,6 @@ def parser_yacc(script):
         r'attributes : attribute COMMA attributes'
         p[0] = [p[1]] + p[3]
 
-    def p_attributes_splat(p):
-        r'attributes : attributes ARITH_MUL HASH_ROCKET expression'
-        p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
-
-    def p_attributes_splat_comma(p):
-        r'attributes : attributes ARITH_MUL HASH_ROCKET expression COMMA'
-        p[0] = [Attribute(p.lineno(2), find_column(script, p.lexpos(2)), p[2], p[4])]
-
     def p_attributes_single(p):
         r'attributes : attribute'
         p[0] = [p[1]]
@@ -562,6 +551,10 @@ def parser_yacc(script):
 
     def p_attribute(p):
         r'attribute : attributekey HASH_ROCKET expression'
+        p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
+    def p_attribute_splat(p):
+        r'attribute : ARITH_MUL HASH_ROCKET expression'
         p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_attributekey(p):
@@ -600,11 +593,11 @@ def parser_yacc(script):
         p[0] = (p[1], p[3])
 
     def p_expressionlist(p):
-        r'expressionlist : expressionvalue COMMA expressionlist'
+        r'expressionlist : expression COMMA expressionlist'
         p[0] = [p[1]] + p[3]
 
     def p_expressionlist_single(p):
-        r'expressionlist : expressionvalue'
+        r'expressionlist : expression'
         p[0] = [p[1]]
 
     def p_expressionlist_empty(p):
@@ -612,20 +605,12 @@ def parser_yacc(script):
         p[0] = []
 
     def p_nonempty_expressionlist(p):
-        r'nonempty_expressionlist : expressionvalue COMMA nonempty_expressionlist'
+        r'nonempty_expressionlist : expression COMMA nonempty_expressionlist'
         p[0] = [p[1]] + p[3]
 
     def p_nonempty_expressionlist_single(p):
-        r'nonempty_expressionlist : expressionvalue'
+        r'nonempty_expressionlist : expression'
         p[0] = [p[1]]
-
-    def p_expressionvalue(p):
-        r'expressionvalue : expression'
-        p[0] = p[1]
-
-    def p_expressionvalue_type(p):
-        r'expressionvalue : ID_TYPE'
-        p[0] = p[1]
 
     ### Expressions ###
     def p_expression(p):
