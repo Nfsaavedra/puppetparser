@@ -17,7 +17,7 @@ class TestClass(unittest.TestCase):
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "each")
-        self.assertEqual(res[0].arguments[0], "$binaries")
+        self.assertEqual(res[0].arguments[0].value, "$binaries")
         self.assertEqual(res[0].lamb.parameters[0].name, "$binary")
         self.assertIsInstance(res[0].lamb.block[0], Resource)
 
@@ -29,7 +29,7 @@ class TestClass(unittest.TestCase):
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "test")
-        self.assertEqual(res[0].arguments[0], "$binaries")
+        self.assertEqual(res[0].arguments[0].value, "$binaries")
 
     def test_function_prefix_empty(self):
         code = """
@@ -53,9 +53,10 @@ class TestClass(unittest.TestCase):
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "each")
-        self.assertEqual(res[0].arguments[0], "$binaries")
+        self.assertEqual(res[0].arguments[0].value, "$binaries")
         self.assertEqual(res[0].lamb.parameters[0].name, "$binary")
         self.assertIsInstance(res[0].lamb.block[0], Resource)
+        self.assertEqual(res[0].lamb.block[0].line, 3)
 
     def test_function_chained_without_lambda(self):
         code = """
@@ -65,7 +66,7 @@ class TestClass(unittest.TestCase):
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
         self.assertEqual(res[0].name, "test")
-        self.assertEqual(res[0].arguments[0], "$binaries")
+        self.assertEqual(res[0].arguments[0].value, "$binaries")
 
     def test_function_declaration(self):
         code = """

@@ -2,6 +2,7 @@ import unittest
 
 from puppetparser.parser import parse
 from puppetparser.model import Operation, Resource
+from tests.utility import assertArray
 
 class TestClass(unittest.TestCase):
     def test_comparison_operators(self):
@@ -17,7 +18,7 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].attributes[0].value, Operation)
         self.assertEqual(res[0].attributes[0].value.operator, "in")
         self.assertIsInstance(res[0].attributes[0].value.arguments[0], Operation)
-        self.assertEqual(res[0].attributes[0].value.arguments[1], [True, False])
+        assertArray(self, res[0].attributes[0].value.arguments[1].value, [True, False])
         self.assertEqual(res[0].attributes[0].value.arguments[0].operator, "==")
-        self.assertEqual(res[0].attributes[0].value.arguments[0].arguments, (True, 2))
-        self.assertEqual(res[0].attributes[1].value.arguments, (5, 7))
+        assertArray(self, res[0].attributes[0].value.arguments[0].arguments, (True, 2))
+        assertArray(self, res[0].attributes[1].value.arguments, (5, 7))

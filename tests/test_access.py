@@ -2,6 +2,7 @@ import unittest
 
 from puppetparser.parser import parse
 from puppetparser.model import Operation, Resource
+from tests.utility import assertArray
 
 class TestClass(unittest.TestCase):
     def test_access(self):
@@ -14,5 +15,6 @@ class TestClass(unittest.TestCase):
         """
 
         res, comments = parse(code)
-        self.assertEqual(res[0].value, [1, 2, 3])
+        assertArray(self, res[0].value.value, [1, 2, 3])
         self.assertEqual(res[1].attributes[0].value.operator, "[]")
+        self.assertEqual(res[1].attributes[0].line, 4)

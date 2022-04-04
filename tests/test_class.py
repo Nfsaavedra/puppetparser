@@ -32,6 +32,7 @@ class TestClass(unittest.TestCase):
         self.assertEqual(len(res[0].block), 3)
         for e in res[0].block:
             self.assertIsInstance(e, Resource)
+        self.assertEqual(res[0].block[2].line, 12)
 
     def test_resource_declaration(self):
         code = """
@@ -42,5 +43,5 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], PuppetClass)
-        self.assertEqual(res[0].name, "apache")
-        self.assertEqual(res[0].parameters[0].key, "version")
+        self.assertEqual(res[0].name.value, "apache")
+        self.assertEqual(res[0].parameters[0].key.value, "version")

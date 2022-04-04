@@ -2,6 +2,7 @@ import unittest
 
 from puppetparser.parser import parse
 from puppetparser.model import Operation, Reference, Resource
+from tests.utility import assertArray
 
 class TestClass(unittest.TestCase):
     def test_access(self):
@@ -17,8 +18,9 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].attributes[0].value, Operation)
         self.assertIsInstance(res[0].attributes[0].value.arguments[0], Reference)
         self.assertEqual(res[0].attributes[0].value.arguments[0].type, "File")
-        self.assertEqual(res[0].attributes[0].value.arguments[0].references, ["/etc/first.conf"])
+        assertArray(self, res[0].attributes[0].value.arguments[0].references, ["/etc/first.conf"])
         self.assertIsInstance(res[0].attributes[1].value, Operation)
         self.assertIsInstance(res[0].attributes[1].value.arguments[0], Reference)
         self.assertEqual(res[0].attributes[1].value.arguments[0].type, "File")
-        self.assertEqual(res[0].attributes[1].value.arguments[0].references, ["/etc/first.conf", "test"])
+        assertArray(self, res[0].attributes[1].value.arguments[0].references, ["/etc/first.conf", "test"])
+        self.assertEqual(res[0].attributes[1].value.arguments[0].line, 4)

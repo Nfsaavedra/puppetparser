@@ -1,7 +1,9 @@
 import unittest
 
 from puppetparser.parser import InvalidPuppetScript, parse
-from puppetparser.model import Attribute, Reference, Regex, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression
+from puppetparser.model import Attribute, Reference, Regex, \
+        Resource, ResourceCollector, ResourceDeclaration, ResourceExpression
+from tests.utility import assertArray, assertHash
 
 class TestResource(unittest.TestCase):
     def test_resource(self):
@@ -30,25 +32,25 @@ class TestResource(unittest.TestCase):
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(len(res[0].attributes), 12)
         self.assertEqual(res[0].type, "test")
-        self.assertEqual(res[0].title, "test123")
+        self.assertEqual(res[0].title.value, "test123")
 
         for i in range(8):
-            self.assertIsInstance(res[0].attributes[0], Attribute)
-        self.assertEqual(res[0].attributes[0].value, "running")
-        self.assertEqual(res[0].attributes[1].value, True)
-        self.assertEqual(res[0].attributes[2].value, "hello")
-        self.assertEqual(res[0].attributes[3].value, 123)
-        self.assertEqual(res[0].attributes[4].value, 0.1)
-        self.assertEqual(res[0].attributes[5].value, 1e-10)
-        self.assertEqual(res[0].attributes[6].value, 0x777)
-        self.assertEqual(res[0].attributes[7].value, 0o777)
-        self.assertEqual(res[0].attributes[8].value, [1, 2.0, "kek"])
-        self.assertEqual(res[0].attributes[9].value, {1: "hello", "kek": 2})
+            self.assertIsInstance(res[0].attributes[i], Attribute)
+        self.assertEqual(res[0].attributes[0].value.value, "running")
+        self.assertEqual(res[0].attributes[1].value.value, True)
+        self.assertEqual(res[0].attributes[2].value.value, "hello")
+        self.assertEqual(res[0].attributes[3].value.value, 123)
+        self.assertEqual(res[0].attributes[4].value.value, 0.1)
+        self.assertEqual(res[0].attributes[5].value.value, 1e-10)
+        self.assertEqual(res[0].attributes[6].value.value, 0x777)
+        self.assertEqual(res[0].attributes[7].value.value, 0o777)
+        assertArray(self, res[0].attributes[8].value.value, [1, 2.0, "kek"])
+        assertHash(self, res[0].attributes[9].value.value, {1: "hello", "kek": 2})
         self.assertIsInstance(res[0].attributes[10].value, Regex)
-        self.assertEqual(res[0].attributes[10].value.content, "/$\/*hello*/^/")
+        self.assertEqual(res[0].attributes[10].value.value, "/$\/*hello*/^/")
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
-        self.assertEqual(res[0].attributes[11].value, None)
+        self.assertEqual(res[0].attributes[11].value.value, None)
 
     def test_resource_without_comma(self):
         code = """
@@ -109,7 +111,7 @@ class TestResource(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
         self.assertIsInstance(res[0].attributes[1], Attribute)
-        self.assertEqual(res[0].attributes[1].key, "*")
+        self.assertEqual(res[0].attributes[1].key.value, "*")
 
     def test_array_of_titles(self):
         code = """
@@ -129,7 +131,7 @@ class TestResource(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[1], Resource)
-        self.assertEqual(res[1].title, "$rc_dirs")
+        self.assertEqual(res[1].title.value, "$rc_dirs")
 
     def test_add_attributes(self):
         code = """
@@ -228,7 +230,7 @@ class TestResource(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], ResourceExpression)
         self.assertIsInstance(res[0].default, Resource)
-        self.assertEqual(res[0].default.title, "default")
+        self.assertEqual(res[0].default.title.value, "default")
         self.assertEqual(len(res[0].resources), 4)
         for r in res[0].resources:
             self.assertIsInstance(r, Resource)

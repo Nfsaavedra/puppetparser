@@ -18,3 +18,4 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[1].attributes[0].value, Operation)
         self.assertEqual(res[1].attributes[0].value.operator, "*")
         self.assertEqual(res[1].attributes[1].value.operator, "<<")
+        self.assertEqual(res[1].attributes[1].line, 5)

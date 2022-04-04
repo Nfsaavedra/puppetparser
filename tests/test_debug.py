@@ -17,10 +17,11 @@ class TestClass(unittest.TestCase):
         res = parse(code)[0]
         for stat in res[:-1]:
             self.assertIsInstance(stat, Debug)
-        self.assertEqual(res[0].args[0], "DEBUG")
-        self.assertEqual(res[1].args[0], "INFO")
-        self.assertEqual(res[2].args[0], "NOTICE")
-        self.assertEqual(res[3].args[0], "WARNING")
-        self.assertEqual(res[4].args[0], "ERR")
+        self.assertEqual(res[0].args[0].value, "DEBUG")
+        self.assertEqual(res[1].args[0].value, "INFO")
+        self.assertEqual(res[2].args[0].value, "NOTICE")
+        self.assertEqual(res[3].args[0].value, "WARNING")
+        self.assertEqual(res[4].args[0].value, "ERR")
         self.assertIsInstance(res[-1], Fail)
-        self.assertEqual(res[-1].args[0], "FAIL")
+        self.assertEqual(res[-1].args[0].value, "FAIL")
+        self.assertEqual(res[2].args[0].line, 4)

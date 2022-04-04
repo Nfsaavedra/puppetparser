@@ -13,4 +13,5 @@ class TestClass(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], Contain)
         self.assertIsInstance(res[1], Contain)
-        self.assertEqual(res[1].cont[0], "base::linux")
+        self.assertEqual(res[1].cont[0].value, "base::linux")
+        self.assertEqual(res[1].line, 3)

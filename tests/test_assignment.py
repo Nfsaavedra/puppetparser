@@ -2,6 +2,7 @@ import unittest
 
 from puppetparser.parser import parse
 from puppetparser.model import Assignment, Node, Resource
+from tests.utility import assertArray, assertHash
 
 class TestClass(unittest.TestCase):
     def test_assignment(self):
@@ -25,9 +26,10 @@ class TestClass(unittest.TestCase):
         self.assertEqual(len(res[0].block), 3)
         self.assertIsInstance(res[0].block[0], Assignment)
         self.assertEqual(res[0].block[0].name, "$hello")
-        self.assertEqual(res[0].block[0].value, 123)
+        self.assertEqual(res[0].block[0].value.value, 123)
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
+        self.assertEqual(res[0].block[1].line, 4)
 
     def test_assignment_array(self):
         code = """
@@ -49,10 +51,11 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].name, "webserver")
         self.assertEqual(len(res[0].block), 3)
         self.assertIsInstance(res[0].block[0], Assignment)
-        self.assertEqual(res[0].block[0].name, ["$a", "$b", "$c"])
-        self.assertEqual(res[0].block[0].value, [1, 2, 3])
+        assertArray(self, res[0].block[0].name.value, ["$a", "$b", "$c"])
+        assertArray(self, res[0].block[0].value.value, [1, 2, 3])
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
+        self.assertEqual(res[0].block[2].line, 8)
 
     def test_assignment_hash(self):
         code = """
@@ -74,7 +77,8 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].name, "webserver")
         self.assertEqual(len(res[0].block), 3)
         self.assertIsInstance(res[0].block[0], Assignment)
-        self.assertEqual(res[0].block[0].name, ["$a", "$b", "$c"])
-        self.assertEqual(res[0].block[0].value, {"$a": 1, "$b": 2, "$c": 3})
+        assertArray(self, res[0].block[0].name.value, ["$a", "$b", "$c"])
+        assertHash(self, res[0].block[0].value.value, {"$a": 1, "$b": 2, "$c": 3})
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
+        self.assertEqual(res[0].block[2].line, 8)

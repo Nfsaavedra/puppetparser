@@ -2,6 +2,7 @@ import unittest
 
 from puppetparser.parser import parse
 from puppetparser.model import Tag
+from tests.utility import assertArray
 
 class TestClass(unittest.TestCase):
     def test_tag(self):
@@ -18,4 +19,4 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0].block[0], Tag)
-        self.assertEqual(res[0].block[0].tags, ['us_mirror1', 'us_mirror2'])
+        assertArray(self, res[0].block[0].tags, ['us_mirror1', 'us_mirror2'])

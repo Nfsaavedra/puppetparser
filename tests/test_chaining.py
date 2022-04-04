@@ -5,14 +5,14 @@ from puppetparser.model import Chaining, Reference, Resource, ResourceCollector
 
 class TestClass(unittest.TestCase):
     def test_chaining_1(self):
-        code = """
-        Package['ntp'] -> File['/etc/ntp.conf'] ~> Service['ntpd']
-        """
+        code = "Package['ntp'] -> File['/etc/ntp.conf'] ~> Service['ntpd']"
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
+        self.assertEqual(res[0].line, 1)
         self.assertIsInstance(res[0].op1, Reference)
         self.assertIsInstance(res[0].op2, Chaining)
+        self.assertEqual(res[0].op2.line, 1)
         self.assertIsInstance(res[0].op2.op1, Reference)
         self.assertIsInstance(res[0].op2.op2, Reference)
 
@@ -48,3 +48,4 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0], Chaining)
         self.assertIsInstance(res[0].op1, ResourceCollector)
         self.assertIsInstance(res[0].op2, ResourceCollector)
+        self.assertEqual(res[0].line, 2)

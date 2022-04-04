@@ -5,11 +5,34 @@ class CodeElement:
         self.line: int = line
         self.col: int = col
 
-class Attribute(CodeElement):
-    def __init__(self, line: int, col: int, key: str, value) -> None:
+class Value(CodeElement):
+    def __init__(self, line: int, col: int, value) -> None:
         super().__init__(line, col)
-        self.key: str = key
-        self.value: str = value
+        self.value = value
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, Value) and __o.value == self.value
+
+    def __hash__(self) -> int:
+        return self.value.__hash__()
+
+class Hash(Value):
+    def __init__(self, line: int, col: int, value: dict) -> None:
+        super().__init__(line, col, value)
+
+class Array(Value):
+    def __init__(self, line: int, col: int, value: list) -> None:
+        super().__init__(line, col, value)
+
+class Regex(Value):
+    def __init__(self, line: int, col: int, value: str):
+        super().__init__(line, col, value)
+
+class Attribute(CodeElement):
+    def __init__(self, key: Value, value: Value) -> None:
+        super().__init__(key.line, key.col)
+        self.key: Value = key
+        self.value: Value = value
 
 class Resource(CodeElement):
     def __init__(self, line: int, col: int, type: Union[str, 'Reference', 'ResourceCollector'], 
@@ -57,10 +80,6 @@ class Node(CodeElement):
 class Comment(CodeElement):
     def __init__(self, line: int, col: int, content: str):
         super().__init__(line, col)
-        self.content = content
-
-class Regex:
-    def __init__(self, content: str):
         self.content = content
 
 #FIXME probably should be a codeelement
@@ -179,8 +198,8 @@ class ResourceExpression(CodeElement):
         self.resources = resources
 
 class Chaining(CodeElement):
-    def __init__(self, line: int, col: int, op1, op2, direction: str) -> None:
-        super().__init__(line, col)
+    def __init__(self, op1: CodeElement, op2: CodeElement, direction: str) -> None:
+        super().__init__(op1.line, op1.col)
         self.op1 = op1
         self.op2 = op2
         self.direction = direction

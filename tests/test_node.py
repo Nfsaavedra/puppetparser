@@ -66,3 +66,4 @@ class TestClass(unittest.TestCase):
         self.assertEqual(len(res[0].block), 2)
         for e in res[0].block:
             self.assertIsInstance(e, Resource)
+        self.assertEqual(res[0].block[1].line, 7)

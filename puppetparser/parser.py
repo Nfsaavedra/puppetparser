@@ -1,7 +1,7 @@
 from ply.lex import lex
 from ply.yacc import yacc
 import re
-from puppetparser.model import Assignment, Attribute, Case, Chaining, Comment, Contain, Debug, Fail, Function, FunctionCall, If, Include, Lambda, Match, Node, Operation, Parameter, PuppetClass, Realize, Reference, Regex, Require, Resource, ResourceCollector, ResourceDeclaration, ResourceExpression, Selector, Tag, Unless
+from puppetparser.model import *
 
 class InvalidPuppetScript(Exception):
     pass
@@ -353,22 +353,22 @@ def parse(script):
 
     def p_assignment_array(p):
         r'assignment : array EQUAL array'
-        if len(p[1]) != len(p[3]):
+        if len(p[1].value) != len(p[3].value):
             raise InvalidPuppetScript(f'Syntax error')
-        for id in p[1]:
-            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
-                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
+        for id in p[1].value:
+            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id.value) and not \
+                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id.value):
                 raise InvalidPuppetScript(f'Syntax error')
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
     def p_assignment_hash(p):
         r'assignment : array EQUAL hash'
-        for id in p[1]:
-            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id) and not \
-                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id):
+        for id in p[1].value:
+            if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id.value) and not \
+                    re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id.value):
                 raise InvalidPuppetScript(f'Syntax error')
 
-            if id not in p[3]:
+            if id not in p[3].value:
                 raise InvalidPuppetScript(f'Syntax error')
 
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
@@ -395,10 +395,10 @@ def parse(script):
             resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[2]), p[3])
             default = None
             for r in resources:
-                if r.title == "default":
+                if r.title.value == "default":
                     default = r
                     break
-            resources = list(filter(lambda r: r.title != default, resources))
+            resources = list(filter(lambda r: r.title.value != "default", resources))
 
             p[0] = ResourceExpression(p.lineno(1), find_column(script, p.lexpos(1)), default, resources)
 
@@ -553,30 +553,70 @@ def parse(script):
 
     def p_attribute(p):
         r'attribute : attributekey HASH_ROCKET expression'
-        p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p[0] = Attribute(p[1], p[3])
 
     def p_attribute_splat(p):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
-        p[0] = Attribute(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
 
     def p_attributekey(p):
         r'attributekey : ID'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    for k, v in statement_functions.items():
-        exec(f"def p_attributekey_{k}(p):\n\tr'attributekey : {v}'\n\tp[0] = p[1]\n\tp.set_lineno(0, p.lineno(1))")
+    def p_attributekey_include(p):
+        r'attributekey : INCLUDE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_require(p):
+        r'attributekey : REQUIRE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_contain(p):
+        r'attributekey : CONTAIN'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_tag(p):
+        r'attributekey : TAG'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_debug(p):
+        r'attributekey : DEBUG'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_info(p):
+        r'attributekey : INFO'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_notice(p):
+        r'attributekey : NOTICE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_warning(p):
+        r'attributekey : WARNING'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_err(p):
+        r'attributekey : ERR'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_fail(p):
+        r'attributekey : FAIL'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_realize(p):
+        r'attributekey : REALIZE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_array(p):
         r'array : LPARENR expressionlist RPARENR'
-        p[0] = p[2]
+        p[0] = Array(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
 
     def p_hash(p):
         r'hash : LBRACKET keyvalue_pairs RBRACKET'
         res = {}
         for kv in p[2]:
             res[kv[0]] = kv[1]
-        p[0] = res
+        p[0] = Hash(p.lineno(1), find_column(script, p.lexpos(1)), res)
 
     def p_keyvalue_pairs(p):
         r'keyvalue_pairs : keyvalue COMMA keyvalue_pairs'
@@ -793,13 +833,11 @@ def parse(script):
     # Chaining arrows
     def p_chaining_left(p):
         'chaining : chaining_value CHAINING_LEFT chaining_value'
-        p[0] = Chaining(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], p[3], p[2])
+        p[0] = Chaining(p[1], p[3], p[2])
 
     def p_chaining_right(p):
         'chaining : chaining_value CHAINING_RIGHT chaining_value'
-        p[0] = Chaining(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], p[3], p[2])
+        p[0] = Chaining(p[1], p[3], p[2])
 
     def p_chaining_value(p):
         'chaining_value : chaining'
@@ -1041,43 +1079,43 @@ def parse(script):
 
     def p_value_string(p):
         r'value : STRING'
-        p[0] = p[1]
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_value_false(p):
         r'value : FALSE'
-        p[0] = False
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), False)
 
     def p_value_true(p):
         r'value : TRUE'
-        p[0] = True
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), True)
 
     def p_value_integer(p):
         r'value : INTEGER'
-        p[0] = int(p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), int(p[1]))
 
     def p_value_float(p):
         r'value : FLOAT'
-        p[0] = float(p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), float(p[1]))
 
     def p_value_regex(p):
         r'value : REGEX'
-        p[0] = Regex(p[1])
+        p[0] = Regex(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_value_id(p):
         r'value : ID'
-        p[0] = p[1]
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_value_type_id(p):
         r'value : ID_TYPE'
-        p[0] = p[1]
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_value_undef(p):
         r'value : UNDEF'
-        p[0] = None
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), None)
 
     def p_value_default(p):
         r'value : DEFAULT'
-        p[0] = p[1]
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_empty(p):
         r'empty : '
