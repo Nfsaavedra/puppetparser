@@ -254,7 +254,7 @@ def parse(script):
         return t
 
     def t_STRING(t):
-        r"(\'([^\\\n]|(\\.))*?\')|(\"([^\\\n]|(\\.))*?\")"
+        r"(\'([^\\]|(\\.))*?\')|(\"([^\\]|(\\.))*?\")"
         t.value = t.value[1:-1]
         return t
 
