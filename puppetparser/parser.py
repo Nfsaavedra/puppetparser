@@ -243,12 +243,12 @@ def parse(script):
         return t
 
     def t_ID(t):
-        r'[a-z\$]((::)?[a-z0-9\_\-]*)*'
+        r'[a-z\$]((::)?[A-Za-z0-9\_\-]*)*'
         t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
         return t
 
     def t_ID_TYPE(t):
-        r'[A-Z\$]((::)?[a-z0-9\_\-]*)*'
+        r'[A-Z\$]((::)?[A-Za-z0-9\_\-]*)*'
         if t.value == 'Sensitive':
             t.type = 'SENSITIVE'
         return t
