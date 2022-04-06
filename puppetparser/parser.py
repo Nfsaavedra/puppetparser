@@ -172,7 +172,7 @@ def parse(script):
     t_COMMA = r','
     t_DOT_COMMA = r';'
     t_DOT = r'\.'
-    t_REGEX = r'\/.*\/'
+    t_REGEX = r'\/.*?\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
     t_CMP_LESS_THAN = r'<'
@@ -192,8 +192,8 @@ def parse(script):
     t_ARITH_RSHIFT = r'>>'
     t_CHAINING_RIGHT = r'->|~>'
     t_CHAINING_LEFT = r'<-|<~'
-    t_LANGLEBRACKET = r'\<\|'
-    t_RANGLEBRACKET = r'\|\>'
+    t_LANGLEBRACKET = r'(\<\<\|)|(\<\|)'
+    t_RANGLEBRACKET = r'(\|\>\>)|(\|\>)'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -243,12 +243,12 @@ def parse(script):
         return t
 
     def t_ID(t):
-        r'[a-z\$]((::)?[A-Za-z0-9\_\-]*)*'
+        r'([a-z\$]|(::))((::)?[A-Za-z0-9\_\-]*)*'
         t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
         return t
 
     def t_ID_TYPE(t):
-        r'[A-Z\$]((::)?[A-Za-z0-9\_\-]*)*'
+        r'([A-Z\$]|(::))((::)?[A-Za-z0-9\_\-]*)*'
         if t.value == 'Sensitive':
             t.type = 'SENSITIVE'
         return t
@@ -319,13 +319,21 @@ def parse(script):
             raise InvalidPuppetScript(f'Syntax error')
         p[0] = (p[1], [], "")
 
-    def p_class_header_inherits(p):
+    def p_class_header_pars_inherits(p):
         r'class_header : ID LPAREN parameters RPAREN INHERITS ID'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             raise InvalidPuppetScript(f'Syntax error')
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[6]):
             raise InvalidPuppetScript(f'Syntax error')
         p[0] = (p[1], p[3], p[6])
+
+    def p_class_header_inherits(p):
+        r'class_header : ID INHERITS ID'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+            raise InvalidPuppetScript(f'Syntax error')
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[3]):
+            raise InvalidPuppetScript(f'Syntax error')
+        p[0] = (p[1], [], p[3])
 
     def p_class_resource_declaration(p):
         r'class : CLASS LBRACKET expression COLON attributes RBRACKET'
@@ -334,7 +342,11 @@ def parse(script):
 
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'
-        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)),  p[2], p[4])
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+
+    def p_node(p):
+        r'node : NODE ID LBRACKET block RBRACKET'
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
     def p_node_regex(p):
         r'node : NODE REGEX LBRACKET block RBRACKET'
@@ -345,11 +357,16 @@ def parse(script):
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
     def p_assignment(p):
-        r'assignment : ID EQUAL expression'
-        if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", p[1]) and not \
-                re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", p[1]):
-            raise InvalidPuppetScript(f'Syntax error')
+        r'assignment : left_value EQUAL expression'
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+
+    def p_left_value(p):
+        r'left_value : ID'
+        p[0] = p[1]
+
+    def p_left_value_access(p):
+        r'left_value : access'
+        p[0] = p[1]
 
     def p_assignment_array(p):
         r'assignment : array EQUAL array'
@@ -556,63 +573,67 @@ def parse(script):
         p[0] = []
 
     def p_attribute(p):
-        r'attribute : attributekey HASH_ROCKET expression'
+        r'attribute : key HASH_ROCKET expression'
         p[0] = Attribute(p[1], p[3])
 
     def p_attribute_splat(p):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
         p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
 
-    def p_attributekey(p):
-        r'attributekey : ID'
+    def p_key(p):
+        r'key : ID'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+    
+    def p_key_unless(p):
+        r'key : UNLESS'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_type(p):
-        r'attributekey : TYPE'
+    def p_key_type(p):
+        r'key : TYPE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_include(p):
-        r'attributekey : INCLUDE'
+    def p_key_include(p):
+        r'key : INCLUDE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_require(p):
-        r'attributekey : REQUIRE'
+    def p_key_require(p):
+        r'key : REQUIRE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_contain(p):
-        r'attributekey : CONTAIN'
+    def p_key_contain(p):
+        r'key : CONTAIN'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_tag(p):
-        r'attributekey : TAG'
+    def p_key_tag(p):
+        r'key : TAG'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_debug(p):
-        r'attributekey : DEBUG'
+    def p_key_debug(p):
+        r'key : DEBUG'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_info(p):
-        r'attributekey : INFO'
+    def p_key_info(p):
+        r'key : INFO'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_notice(p):
-        r'attributekey : NOTICE'
+    def p_key_notice(p):
+        r'key : NOTICE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_warning(p):
-        r'attributekey : WARNING'
+    def p_key_warning(p):
+        r'key : WARNING'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_err(p):
-        r'attributekey : ERR'
+    def p_key_err(p):
+        r'key : ERR'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_attributekey_fail(p):
-        r'attributekey : FAIL'
+        r'key : FAIL'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
-    def p_attributekey_realize(p):
-        r'attributekey : REALIZE'
+    def p_key_realize(p):
+        r'key : REALIZE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_array(p):
@@ -640,6 +661,10 @@ def parse(script):
 
     def p_keyvalue(p):
         r'keyvalue : expression HASH_ROCKET expression'
+        p[0] = (p[1], p[3])
+
+    def p_keyvalue_key(p):
+        r'keyvalue : key HASH_ROCKET expression'
         p[0] = (p[1], p[3])
 
     def p_expressionlist(p):
@@ -780,7 +805,11 @@ def parse(script):
         p[0] = Operation((p[2],), p[1])
 
     def p_expression_access(p):
-        r'expression : expression LPARENR expressionlist RPARENR'
+        r'expression : access'
+        p[0] = p[1]
+
+    def p_access(p):
+        r'access : expression LPARENR expressionlist RPARENR'
         p[0] = Operation((p[1], p[3]), p[2] + p[4])
 
     ## Reference
@@ -795,32 +824,32 @@ def parse(script):
 
     # Function calls
     def p_function_call_prefix(p):
-        r'function_call : ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        r'function_call : key LPAREN expressionlist RPAREN %prec NO_LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[1], p[3], None)
 
     def p_function_call_prefix_lambda(p):
-        r'function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        r'function_call : key LPAREN expressionlist RPAREN lambda %prec LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[1], p[3], p[5])
 
     def p_function_call_chained(p):
-        r'function_call : expression DOT ID %prec NO_LAMBDA'
+        r'function_call : expression DOT key %prec NO_LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[3], [p[1]], None)
 
     def p_function_call_chained_args(p):
-        r'function_call : expression DOT ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        r'function_call : expression DOT key LPAREN expressionlist RPAREN %prec NO_LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[3], [p[1]] + p[5], None) 
 
     def p_function_call_chained_lambda(p):
-        r'function_call : expression DOT ID lambda %prec LAMBDA'
+        r'function_call : expression DOT key lambda %prec LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[3], [p[1]], p[4])
 
     def p_function_call_chained_lambda_args(p):
-        r'function_call : expression DOT ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        r'function_call : expression DOT key LPAREN expressionlist RPAREN lambda %prec LAMBDA'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
                 p[3], [p[1]] + p[5], p[7]) 
 
@@ -860,6 +889,14 @@ def parse(script):
 
     def p_chaining_value_resource(p):
         'chaining_value : resource'
+        p[0] = p[1]
+
+    def p_chaining_value_class(p):
+        'chaining_value : class'
+        p[0] = p[1]
+
+    def p_chaining_value_case(p):
+        'chaining_value : case'
         p[0] = p[1]
 
     def p_chaining_value_collector(p):
