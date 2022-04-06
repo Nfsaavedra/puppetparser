@@ -373,6 +373,10 @@ def parse(script):
 
         p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
 
+    def p_assignment_type_alias(p):
+        r'assignment : TYPE ID_TYPE EQUAL expression'
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1] + " " + p[2], p[4])
+
     def p_block(p):
         r'block : statement block'
         p[0] = [p[1]] + p[2]
@@ -561,6 +565,10 @@ def parse(script):
 
     def p_attributekey(p):
         r'attributekey : ID'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_attributekey_type(p):
+        r'attributekey : TYPE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
 
     def p_attributekey_include(p):
@@ -1121,6 +1129,7 @@ def parse(script):
         r'empty : '
     
     def p_error(p):
+        print(p)
         raise InvalidPuppetScript(f'Syntax error')
 
     # Build the parser

@@ -82,3 +82,25 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
         self.assertEqual(res[0].block[2].line, 8)
+
+    def test_assignment_type_alias(self):
+        code = """
+            type Unbound::Local_zone_type = Enum[
+                'deny',
+                'refuse',
+                'static',
+                'transparent',
+                'redirect',
+                'nodefault',
+                'typetransparent',
+                'inform',
+                'inform_deny',
+                'always_transparent',
+                'always_refuse',
+                'always_nxdomain',
+            ]
+        """
+
+        res = parse(code)[0]
+        self.assertIsInstance(res[0], Assignment)
+        self.assertEqual(res[0].name, "type Unbound::Local_zone_type")
