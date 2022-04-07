@@ -190,7 +190,6 @@ def parse(script):
     t_COMMA = r','
     t_DOT_COMMA = r';'
     t_DOT = r'\.'
-    t_REGEX = r'\/([^\\]|(\\.))*?\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
     t_CMP_LESS_THAN = r'<'
@@ -212,6 +211,7 @@ def parse(script):
     t_CHAINING_LEFT = r'<-|<~'
     t_LANGLEBRACKET = r'(\<\<\|)|(\<\|)'
     t_RANGLEBRACKET = r'(\|\>\>)|(\|\>)'
+    t_REGEX = r'\/([^\\\n]|(\\.))*?\/'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -260,15 +260,15 @@ def parse(script):
             t.type = "INTEGER"
         return t
 
+    def t_ID_TYPE(t):
+        r'((::)?[A-Za-z0-9\_\-]*(::))*[A-Z][a-zA-Z0-9\_\-]*'
+        if t.value == 'Sensitive':
+            t.type = 'SENSITIVE'
+        return t
+
     def t_ID(t):
         r'([a-z\$]|(::))((::)?[A-Za-z0-9\_\-]*)*'
         t.type = keywords.get(t.value, statement_functions.get(t.value,'ID'))
-        return t
-
-    def t_ID_TYPE(t):
-        r'([A-Z\$]|(::))((::)?[A-Za-z0-9\_\-]*)*'
-        if t.value == 'Sensitive':
-            t.type = 'SENSITIVE'
         return t
 
     def t_STRING(t):
@@ -627,6 +627,10 @@ def parse(script):
         r'attribute : ARITH_MUL PLUSIGNMENT expression'
         p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
     
+    def p_key_site(p):
+        r'key : SITE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
     def p_key_import(p):
         r'key : IMPORT'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
