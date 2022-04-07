@@ -16,7 +16,7 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
-        self.assertEqual(res[0].name, "each")
+        self.assertEqual(res[0].name.value, "each")
         self.assertEqual(res[0].arguments[0].value, "$binaries")
         self.assertEqual(res[0].lamb.parameters[0].name, "$binary")
         self.assertIsInstance(res[0].lamb.block[0], Resource)
@@ -28,7 +28,7 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
-        self.assertEqual(res[0].name, "test")
+        self.assertEqual(res[0].name.value, "test")
         self.assertEqual(res[0].arguments[0].value, "$binaries")
 
     def test_function_prefix_empty(self):
@@ -38,7 +38,7 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
-        self.assertEqual(res[0].name, "test")
+        self.assertEqual(res[0].name.value, "test")
 
     def test_function_chained(self):
         code = """
@@ -52,7 +52,7 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
-        self.assertEqual(res[0].name, "each")
+        self.assertEqual(res[0].name.value, "each")
         self.assertEqual(res[0].arguments[0].value, "$binaries")
         self.assertEqual(res[0].lamb.parameters[0].name, "$binary")
         self.assertIsInstance(res[0].lamb.block[0], Resource)
@@ -65,7 +65,7 @@ class TestClass(unittest.TestCase):
 
         res, comments = parse(code)
         self.assertIsInstance(res[0], FunctionCall)
-        self.assertEqual(res[0].name, "test")
+        self.assertEqual(res[0].name.value, "test")
         self.assertEqual(res[0].arguments[0].value, "$binaries")
 
     def test_function_declaration(self):

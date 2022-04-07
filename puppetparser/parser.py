@@ -172,7 +172,7 @@ def parse(script):
     t_COMMA = r','
     t_DOT_COMMA = r';'
     t_DOT = r'\.'
-    t_REGEX = r'\/.*?\/'
+    t_REGEX = r'\/([^\\]|(\\.))*?\/'
     t_CMP_EQUAL = r'=='
     t_CMP_NOT_EQUAL = r'!='
     t_CMP_LESS_THAN = r'<'
@@ -344,7 +344,7 @@ def parse(script):
         r'node : NODE STRING LBRACKET block RBRACKET'
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
-    def p_node(p):
+    def p_node_id(p):
         r'node : NODE ID LBRACKET block RBRACKET'
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 

@@ -22,7 +22,7 @@ class TestResource(unittest.TestCase):
                     1 => "hello",
                     "kek" => 2
                 },
-                regex => /$\/*hello*/^/,
+                regex => /$\/*hello*\/^/,
                 undefined => undef
             } 
         """
@@ -47,7 +47,7 @@ class TestResource(unittest.TestCase):
         assertArray(self, res[0].attributes[8].value.value, [1, 2.0, "kek"])
         assertHash(self, res[0].attributes[9].value.value, {1: "hello", "kek": 2})
         self.assertIsInstance(res[0].attributes[10].value, Regex)
-        self.assertEqual(res[0].attributes[10].value.value, "/$\/*hello*/^/")
+        self.assertEqual(res[0].attributes[10].value.value, "/$\/*hello*\/^/")
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
         self.assertEqual(res[0].attributes[11].value.value, None)
