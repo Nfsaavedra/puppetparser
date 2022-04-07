@@ -860,6 +860,11 @@ def parse(script):
         id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
         p[0] = FunctionCall(id.line, id.col, id, p[3], None)
 
+    def p_function_call_type(p):
+        r'function_call : TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
+
     def p_function_call_prefix_lambda(p):
         r'function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
         id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
