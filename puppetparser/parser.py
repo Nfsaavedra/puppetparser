@@ -977,6 +977,10 @@ def parse(script):
         'chaining_value : case'
         p[0] = p[1]
 
+    def p_chaining_value_id(p):
+        'chaining_value : ID'
+        p[0] = p[1]
+
     def p_chaining_value_collector(p):
         'chaining_value : resource_collector'
         p[0] = p[1]
