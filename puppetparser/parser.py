@@ -122,6 +122,20 @@ def parse(script):
         'realize' : 'REALIZE'
     }
 
+    statement_functions_class = {
+        'include' : 'Include',
+        'require' : 'Require',
+        'contain' : 'Contain',
+        'tag' : 'Tag',
+        'debug' : 'Debug',
+        'info' : 'Debug',
+        'notice' : 'Debug',
+        'warning' : 'Debug',
+        'err' : 'Debug',
+        'fail' : 'Fail',
+        'realize' : 'Realize'
+    }
+
     keywords = {
         'and': 'BOOL_AND', 
         'application': 'APPLICATION', 
@@ -406,12 +420,30 @@ def parse(script):
         r'block : empty'
         p[0] = []
 
-    def p_resource(p):
+    def p_resource_id(p):
         r'resource : ID LBRACKET resource_list RBRACKET'
-        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", id.value):
             raise InvalidPuppetScript(f'Syntax error')
         if (len(p[3]) == 1):
-            p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3][0][0], p[3][0][1])
+            p[0] = Resource(id.line, id.col, id, p[3][0][0], p[3][0][1])
+        else:
+            resources = map(lambda r: Resource(r[2], r[3], id, r[0], r[2]), p[3])
+            default = None
+            for r in resources:
+                if r.title.value == "default":
+                    default = r
+                    break
+            resources = list(filter(lambda r: r.title.value != "default", resources))
+
+            p[0] = ResourceExpression(id.line, id.col, default, resources)
+
+    def p_resource(p):
+        r'resource : key LBRACKET resource_list RBRACKET'
+        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1].value):
+            raise InvalidPuppetScript(f'Syntax error')
+        if (len(p[3]) == 1):
+            p[0] = Resource(p[1].line, p[1].col, p[1], p[3][0][0], p[3][0][1])
         else:
             resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[2]), p[3])
             default = None
@@ -421,7 +453,7 @@ def parse(script):
                     break
             resources = list(filter(lambda r: r.title.value != "default", resources))
 
-            p[0] = ResourceExpression(p.lineno(1), find_column(script, p.lexpos(1)), default, resources)
+            p[0] = ResourceExpression(p[1].line, p[1].col, default, resources)
 
     def p_resource_list(p):
         r'resource_list : resource_body DOT_COMMA resource_list'
@@ -506,15 +538,8 @@ def parse(script):
         p[0] = p[2]
 
     def p_resource_collector_expression_value(p):
-        r'rc_expression : rc_value'
+        r'rc_expression : value'
         p[0] = p[1]
-
-    def p_resource_collector_value(p):
-        r'rc_value : value'
-        p[0] = p[1]
-
-    for k, v in statement_functions.items():
-        exec(f"def p_resource_collector_value_{k}(p):\n\tr'rc_value : {v}'\n\tp[0] = p[1]")
 
     def p_parameters(p):
         r'parameters : parameter COMMA parameters'
@@ -573,16 +598,17 @@ def parse(script):
         p[0] = []
 
     def p_attribute(p):
+        r'attribute : ID HASH_ROCKET expression'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Attribute(id, p[3])
+
+    def p_attribute_key(p):
         r'attribute : key HASH_ROCKET expression'
         p[0] = Attribute(p[1], p[3])
 
     def p_attribute_splat(p):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
         p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
-
-    def p_key(p):
-        r'key : ID'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
     
     def p_key_unless(p):
         r'key : UNLESS'
@@ -679,14 +705,6 @@ def parse(script):
         r'expressionlist : empty'
         p[0] = []
 
-    def p_nonempty_expressionlist(p):
-        r'nonempty_expressionlist : expression COMMA nonempty_expressionlist'
-        p[0] = [p[1]] + p[3]
-
-    def p_nonempty_expressionlist_single(p):
-        r'nonempty_expressionlist : expression'
-        p[0] = [p[1]]
-
     ### Expressions ###
     def p_expression(p):
         'expression : value'
@@ -694,6 +712,10 @@ def parse(script):
 
     def p_expression_function_call(p):
         r'expression : function_call'
+        p[0] = p[1]
+
+    def p_expression_statement_function(p):
+        'expression : statement_function'
         p[0] = p[1]
 
     def p_expression_paren(p):
@@ -823,35 +845,45 @@ def parse(script):
                 p[1], p[3])   
 
     # Function calls
+    def p_statement_function(p):
+        r'statement_function : key expressionlist'
+        p[0] = globals()[statement_functions_class[p[1].value]]\
+                (p[1].line, p[1].col, p[2])
+
+    def p_statement_function_paren(p):
+        r'statement_function : key LPAREN expressionlist RPAREN'
+        p[0] = globals()[statement_functions_class[p[1].value]]\
+                (p[1].line, p[1].col, p[3])
+
     def p_function_call_prefix(p):
-        r'function_call : key LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], p[3], None)
+        r'function_call : ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
 
     def p_function_call_prefix_lambda(p):
-        r'function_call : key LPAREN expressionlist RPAREN lambda %prec LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], p[3], p[5])
+        r'function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = FunctionCall(id.line, id.col, id, p[3], p[5])
 
     def p_function_call_chained(p):
-        r'function_call : expression DOT key %prec NO_LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[3], [p[1]], None)
+        r'function_call : expression DOT ID %prec NO_LAMBDA'
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
+        p[0] = FunctionCall(id.line, id.col, id, [p[1]], None)
 
     def p_function_call_chained_args(p):
-        r'function_call : expression DOT key LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[3], [p[1]] + p[5], None) 
+        r'function_call : expression DOT ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
+        p[0] = FunctionCall(id.line, id.col, id, [p[1]] + p[5], None) 
 
     def p_function_call_chained_lambda(p):
-        r'function_call : expression DOT key lambda %prec LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[3], [p[1]], p[4])
+        r'function_call : expression DOT ID lambda %prec LAMBDA'
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
+        p[0] = FunctionCall(id.line, id.col, id, [p[1]], p[4])
 
     def p_function_call_chained_lambda_args(p):
-        r'function_call : expression DOT key LPAREN expressionlist RPAREN lambda %prec LAMBDA'
-        p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[3], [p[1]] + p[5], p[7]) 
+        r'function_call : expression DOT ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
+        p[0] = FunctionCall(id.line, id.col, id, [p[1]] + p[5], p[7]) 
 
     def p_lambda(p):
         r'lambda : BAR parameters BAR LBRACKET block RBRACKET'
@@ -914,7 +946,7 @@ def parse(script):
     ### Statements ###
     # The statements are here because they need to be below the expressions
     # in order to have the correct behaviour when solving the reduce/reduce conflicts
-    def p_statement_function(p):
+    def p_statement_func(p):
         r'statement : function'
         p[0] = p[1]
 
@@ -958,93 +990,9 @@ def parse(script):
         r'statement : chaining'
         p[0] = p[1]
 
-    def p_statement_include(p):
-        r'statement : INCLUDE nonempty_expressionlist'
-        p[0] = Include(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_require(p):
-        r'statement : REQUIRE nonempty_expressionlist'
-        p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_contain(p):
-        r'statement : CONTAIN nonempty_expressionlist'
-        p[0] = Contain(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_tag(p):
-        r'statement : TAG nonempty_expressionlist'
-        p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_debug(p):
-        r'statement : DEBUG nonempty_expressionlist'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_info(p):
-        r'statement : INFO nonempty_expressionlist'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_notice(p):
-        r'statement : NOTICE nonempty_expressionlist'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_warning(p):
-        r'statement : WARNING nonempty_expressionlist'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_err(p):
-        r'statement : ERR nonempty_expressionlist'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_fail(p):
-        r'statement : FAIL nonempty_expressionlist'
-        p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_realize(p):
-        r'statement : REALIZE nonempty_expressionlist'
-        p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
-
-    def p_statement_include_paren(p):
-        r'statement : INCLUDE LPAREN expressionlist RPAREN'
-        p[0] = Include(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_require_paren(p):
-        r'statement : REQUIRE LPAREN expressionlist RPAREN'
-        p[0] = Require(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_contain_paren(p):
-        r'statement : CONTAIN LPAREN expressionlist RPAREN'
-        p[0] = Contain(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_tag_paren(p):
-        r'statement : TAG LPAREN expressionlist RPAREN'
-        p[0] = Tag(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_debug_paren(p):
-        r'statement : DEBUG LPAREN expressionlist RPAREN'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_info_paren(p):
-        r'statement : INFO LPAREN expressionlist RPAREN'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_notice_paren(p):
-        r'statement : NOTICE LPAREN expressionlist RPAREN'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_warning_paren(p):
-        r'statement : WARNING LPAREN expressionlist RPAREN'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_err_paren(p):
-        r'statement : ERR LPAREN expressionlist RPAREN'
-        p[0] = Debug(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_fail_paren(p):
-        r'statement : FAIL LPAREN expressionlist RPAREN'
-        p[0] = Fail(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
-
-    def p_statement_realize_paren(p):
-        r'statement : REALIZE LPAREN expressionlist RPAREN'
-        p[0] = Realize(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+    def p_statement_statement_function_function(p):
+        r'statement : statement_function'
+        p[0] = p[1]
 
     # Function declaration
     def p_function(p):
@@ -1161,6 +1109,10 @@ def parse(script):
     def p_value_default(p):
         r'value : DEFAULT'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_value_stat_func(p):
+        r'value : key'
+        p[0] = p[1]
 
     def p_empty(p):
         r'empty : '

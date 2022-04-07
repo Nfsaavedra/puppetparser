@@ -31,7 +31,7 @@ class TestResource(unittest.TestCase):
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
         self.assertEqual(len(res[0].attributes), 12)
-        self.assertEqual(res[0].type, "test")
+        self.assertEqual(res[0].type.value, "test")
         self.assertEqual(res[0].title.value, "test123")
 
         for i in range(8):
@@ -81,7 +81,7 @@ class TestResource(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(res[0].type, "stage")
+        self.assertEqual(res[0].type.value, "stage")
 
     def test_abstract_resource(self):
         code = """
@@ -157,7 +157,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[1].title, None)
         self.assertIsInstance(res[2], Resource)
         self.assertIsInstance(res[2].type, ResourceCollector)
-        self.assertEqual(res[2].type.search.arguments[0], "tag")
+        self.assertEqual(res[2].type.search.arguments[0].value, "tag")
 
     def test_define_resource(self):
         code = """
@@ -189,7 +189,7 @@ class TestResource(unittest.TestCase):
         self.assertIsInstance(res[0], ResourceDeclaration)
         self.assertEqual(res[0].name, "apache::vhost")
         self.assertEqual(res[0].parameters[3].type, "String")
-        self.assertEqual(res[0].block[3].type, "file")
+        self.assertEqual(res[0].block[3].type.value, "file")
 
     def test_resource_default(self):
         code = """
