@@ -23,14 +23,15 @@ class TestResource(unittest.TestCase):
                     "kek" => 2
                 },
                 regex => /$\/*hello*\/^/,
-                undefined => undef
+                undefined => undef,
+                array +> plus,
             } 
         """
 
         res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 12)
+        self.assertEqual(len(res[0].attributes), 13)
         self.assertEqual(res[0].type.value, "test")
         self.assertEqual(res[0].title.value, "test123")
 
@@ -51,6 +52,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
         self.assertEqual(res[0].attributes[11].value.value, None)
+        self.assertEqual(res[0].attributes[12].value.value, "plus")
 
     def test_resource_without_comma(self):
         code = """

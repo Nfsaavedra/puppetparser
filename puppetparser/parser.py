@@ -63,6 +63,7 @@ def parse(script):
         'QUESTION_MARK',
         'AT',
         'DOT_COMMA',
+        'PLUSIGNMENT',
         # Identifiers
         'ID',
         'ID_TYPE',
@@ -184,6 +185,7 @@ def parse(script):
     t_BAR = r'\|'
     t_AT = r'@'
     t_HASH_ROCKET = r'=>'
+    t_PLUSIGNMENT = r'\+>'
     t_COLON = r'\:'
     t_COMMA = r','
     t_DOT_COMMA = r';'
@@ -610,6 +612,19 @@ def parse(script):
 
     def p_attribute_splat(p):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
+        p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
+
+    def p_attribute_plussign(p):
+        r'attribute : ID PLUSIGNMENT expression'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Attribute(id, p[3])
+
+    def p_attribute_key_plussign(p):
+        r'attribute : key PLUSIGNMENT expression'
+        p[0] = Attribute(p[1], p[3])
+
+    def p_attribute_splat_plussign(p):
+        r'attribute : ARITH_MUL PLUSIGNMENT expression'
         p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
     
     def p_key_import(p):
