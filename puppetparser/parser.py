@@ -1176,8 +1176,7 @@ def parse(script):
         r'empty : '
     
     def p_error(p):
-        print(p)
-        raise InvalidPuppetScript(f'Syntax error')
+        raise InvalidPuppetScript(f'Syntax error {p}')
 
     # Build the parser
     parser = yacc()
