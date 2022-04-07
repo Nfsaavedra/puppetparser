@@ -292,8 +292,7 @@ def parse(script):
         return t
 
     def t_ANY_error(t):
-        print(t)
-        raise InvalidPuppetScript(f'Lexer error')
+        raise InvalidPuppetScript(f'Lexer error {t}')
 
     lexer = lex()
     # Give the lexer some input
