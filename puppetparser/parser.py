@@ -217,7 +217,7 @@ def parse(script):
         t.lexer.lineno += len(t.value)
 
     def t_COMMENT(t):
-        r'\#.*\n'
+        r'\#.*(\n?)'
         comments.append(Comment(t.lexer.lineno, 
                 find_column(script, t.lexpos), t.value[1:-1]))
         t.lexer.lineno += 1
