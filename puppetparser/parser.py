@@ -483,7 +483,7 @@ def parse(script):
         r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@@" + p[3], p[4], p[6])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@@" + p[3], p[4], p[7])
 
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
