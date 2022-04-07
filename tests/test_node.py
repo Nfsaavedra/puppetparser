@@ -41,7 +41,7 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Node)
-        self.assertEqual(res[0].name, "/hello/")
+        self.assertEqual(res[0].name.value, "hello")
         self.assertEqual(len(res[0].block), 2)
         for e in res[0].block:
             self.assertIsInstance(e, Resource)

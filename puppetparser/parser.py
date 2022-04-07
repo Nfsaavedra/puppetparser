@@ -44,7 +44,7 @@ def parse(script):
         'STRING',
         'INTEGER',
         'FLOAT',
-        'REGEX',
+        'REGEXPRESSION',
         # SUGAR SYNTAX
         'LBRACKET',
         'RBRACKET',
@@ -172,6 +172,7 @@ def parse(script):
 
     states = (
         ('comment', 'exclusive'),
+        ('regex', 'exclusive'),
     )
 
     # Other
@@ -211,7 +212,6 @@ def parse(script):
     t_CHAINING_LEFT = r'<-|<~'
     t_LANGLEBRACKET = r'(\<\<\|)|(\<\|)'
     t_RANGLEBRACKET = r'(\|\>\>)|(\|\>)'
-    t_REGEX = r'\/([^\\\n]|(\\.))*?\/'
 
     # Identifiers
     t_ignore_ANY = r'[\t\ ]'
@@ -226,19 +226,34 @@ def parse(script):
                 find_column(script, t.lexpos), t.value[1:-1]))
         t.lexer.lineno += 1
 
+    current_comment = [0, 0, ""]
     def t_comment(t):
-        r'/\*'
+        r'\/\*'
+        current_comment[0] = t.lexer.lineno
+        current_comment[1] = find_column(script, t.lexpos)
+        current_comment[2] = ""
         t.lexer.begin('comment')
 
     def t_comment_END(t):
-        r'\*/'
+        r'\*\/'
+        comments.append(Comment(current_comment[0], current_comment[1], current_comment[2]))
         t.lexer.begin('INITIAL')
 
     def t_comment_content(t):
-        r'[^(\*/)]+'
-        comments.append(Comment(t.lexer.lineno, 
-            find_column(script, t.lexpos), t.value))
+        r'.|\n'
+        current_comment[2] += t.value
         t.lexer.lineno += t.value.count('\n')
+
+    def t_regex_END(t):
+        r'\/'
+        t.type = 'ARITH_DIV'
+        t.lexer.begin('INITIAL')
+        return t
+
+    def t_regex_expression(t):
+        r"((\\.)|[^\/])+"
+        t.type = "REGEXPRESSION"
+        return t
 
     def t_octal_INTEGER(t):
         r'0[0-9]+'
@@ -277,6 +292,7 @@ def parse(script):
         return t
 
     def t_ANY_error(t):
+        print(t)
         raise InvalidPuppetScript(f'Lexer error')
 
     lexer = lex()
@@ -367,7 +383,7 @@ def parse(script):
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
     def p_node_regex(p):
-        r'node : NODE REGEX LBRACKET block RBRACKET'
+        r'node : NODE regex LBRACKET block RBRACKET'
         p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
 
     def p_node_default(p):
@@ -1120,10 +1136,6 @@ def parse(script):
         r'value : FLOAT'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), float(p[1]))
 
-    def p_value_regex(p):
-        r'value : REGEX'
-        p[0] = Regex(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
-
     def p_value_id(p):
         r'value : ID'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
@@ -1143,6 +1155,18 @@ def parse(script):
     def p_value_stat_func(p):
         r'value : key'
         p[0] = p[1]
+
+    def p_value_regex(p):
+        r'value : regex'
+        p[0] = p[1]
+
+    def p_regex(p):
+        r'regex : ARITH_DIV start_regex REGEXPRESSION ARITH_DIV'
+        p[0] = Regex(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+    
+    def p_start_regex(p):
+        r'start_regex :'
+        lexer.begin('regex')
 
     def p_empty(p):
         r'empty : '
