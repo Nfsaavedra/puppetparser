@@ -122,6 +122,11 @@ class Include(CodeElement):
         super().__init__(line, col)
         self.inc = inc
 
+class Import(CodeElement):
+    def __init__(self, line: int, col: int, imp: list) -> None:
+        super().__init__(line, col)
+        self.imp = imp
+
 class Require(CodeElement):
     def __init__(self, line: int, col: int, req: list) -> None:
         super().__init__(line, col)

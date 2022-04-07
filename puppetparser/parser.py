@@ -119,7 +119,8 @@ def parse(script):
         'warning' : 'WARNING',
         'err' : 'ERR',
         'fail' : 'FAIL',
-        'realize' : 'REALIZE'
+        'realize' : 'REALIZE',
+        'import' : 'IMPORT',
     }
 
     statement_functions_class = {
@@ -133,7 +134,8 @@ def parse(script):
         'warning' : 'Debug',
         'err' : 'Debug',
         'fail' : 'Fail',
-        'realize' : 'Realize'
+        'realize' : 'Realize',
+        'import' : 'Import'
     }
 
     keywords = {
@@ -610,6 +612,10 @@ def parse(script):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
         p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
     
+    def p_key_import(p):
+        r'key : IMPORT'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
     def p_key_unless(p):
         r'key : UNLESS'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
