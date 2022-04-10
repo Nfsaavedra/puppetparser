@@ -369,9 +369,12 @@ def parse(script):
         p[0] = (p[1], [], p[3])
 
     def p_class_resource_declaration(p):
-        r'class : CLASS LBRACKET expression COLON attributes RBRACKET'
-        p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
-                p[3], None, None, p[5])
+        r'class : CLASS LBRACKET resource_list RBRACKET'
+        if (len(p[3]) == 1):
+            p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
+                p[3][0][0], None, None, p[3][0][1])
+        else:
+            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[0], None, None, r[2]), p[3]))
 
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'
@@ -902,6 +905,11 @@ def parse(script):
 
     def p_function_call_type(p):
         r'function_call : TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA'
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
+
+    def p_function_call_id_type(p):
+        r'function_call : ID_TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA'
         id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
         p[0] = FunctionCall(id.line, id.col, id, p[3], None)
 
