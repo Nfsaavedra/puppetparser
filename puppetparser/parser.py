@@ -739,10 +739,12 @@ def parse(script):
     def p_expressionlist(p):
         r'expressionlist : expression COMMA expressionlist'
         p[0] = [p[1]] + p[3]
+        p.set_lineno(0, p.lineno(1))
 
     def p_expressionlist_single(p):
         r'expressionlist : expression'
         p[0] = [p[1]]
+        p.set_lineno(0, p.lineno(1))
 
     def p_expressionlist_empty(p):
         r'expressionlist : empty'
@@ -752,126 +754,155 @@ def parse(script):
     def p_expression(p):
         'expression : value'
         p[0] = p[1]
+        p.set_lineno(0, p[1].line)
 
     def p_expression_function_call(p):
         r'expression : function_call'
         p[0] = p[1]
+        p.set_lineno(0, p[1].line)
 
     def p_expression_statement_function(p):
         'expression : statement_function'
         p[0] = p[1]
+        p.set_lineno(0, p[1].line)
 
     def p_expression_paren(p):
         'expression : LPAREN expression RPAREN'
         p[0] = p[2]
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_assignment(p):
         r'expression : assignment'
         p[0] = p[1]
+        p.set_lineno(0, p[1].line)
 
     def p_expression_access_section(p):
         r'expression : expression LPARENR INTEGER COMMA INTEGER RPARENR'
         p[0] = Operation((p[1], p[3], p[5]), p[2] + p[4] + p[6])
+        p.set_lineno(0, p.lineno(1))
 
     ## Selector ##
     def p_expression_selector(p):
         r'expression : expression QUESTION_MARK hash'
         p[0] = Selector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p.set_lineno(0,p.lineno(1))
 
     ## Comparison ##
     def p_expression_equal(p):
         r'expression : expression CMP_EQUAL expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_not_equal(p):
         r'expression : expression CMP_NOT_EQUAL expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_less_than(p):
         r'expression : expression CMP_LESS_THAN expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_greater_than(p):
         r'expression : expression CMP_GREATER_THAN expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_less_than_or_equal(p):
         r'expression : expression CMP_LESS_THAN_OR_EQUAL expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_greater_than_or_equal(p):
         r'expression : expression CMP_GREATER_THAN_OR_EQUAL expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_regex_match(p):
         r'expression : expression CMP_REGEX_MATCH expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_regex_not_match(p):
         r'expression : expression CMP_REGEX_NOT_MATCH expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_in(p):
         r'expression : expression CMP_IN expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     ## Boolean
     def p_expression_and(p):
         r'expression : expression BOOL_AND expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_or(p):
         r'expression : expression BOOL_OR expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0,p.lineno(1))
 
     def p_expression_not(p):
         r'expression : BOOL_NOT expression'
         p[0] = Operation((p[2],), p[1])
+        p.set_lineno(0, p.lineno(1))
 
     ## Arithmetic
     def p_expression_negation(p):
         r'expression : ARITH_SUB expression %prec ARITH_MINUS'
         p[0] = Operation((p[2],), p[1])
+        p.set_lineno(0, p.lineno(1))
 
     # It also works for array concatenation and hash merging
     def p_expression_addition(p):
         r'expression : expression ARITH_ADD expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     # It also works for array and hash removal
     def p_expression_subtraction(p):
         r'expression : expression ARITH_SUB expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_division(p):
         r'expression : expression ARITH_DIV expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_multiplication(p):
         r'expression : expression ARITH_MUL expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_modulo(p):
         r'expression : expression ARITH_MOD expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     # It also works for array append
     def p_expression_left_shift(p):
         r'expression : expression ARITH_LSHIFT expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_right_shift(p):
         r'expression : expression ARITH_RSHIFT expression'
         p[0] = Operation((p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     ## Array Operations
     def p_expression_splat(p):
         r'expression : ARITH_MUL expression %prec ARRAY_SPLAT'
         p[0] = Operation((p[2],), p[1])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_access(p):
         r'expression : access'
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_access(p):
         r'access : expression LPARENR expressionlist RPARENR'
@@ -881,6 +912,7 @@ def parse(script):
     def p_expression_reference(p):
         r'expression : reference'
         p[0] = p[1]
+        p.set_lineno(0, p[1].line)
 
     def p_reference(p):
         r'reference : ID_TYPE LPARENR expressionlist RPARENR'
