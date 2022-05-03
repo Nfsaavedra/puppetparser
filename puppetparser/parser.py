@@ -464,7 +464,7 @@ def parse(script):
         if (len(p[3]) == 1):
             p[0] = Resource(id.line, id.col, id, p[3][0][0], p[3][0][1])
         else:
-            resources = map(lambda r: Resource(r[2], r[3], id, r[0], r[1]), p[3])
+            resources = list(map(lambda r: Resource(r[2], r[3], id, r[0], r[1]), p[3]))
             default = None
             for r in resources:
                 if r.title.value == "default":

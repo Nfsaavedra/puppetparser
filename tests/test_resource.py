@@ -242,3 +242,23 @@ wooo
         self.assertEqual(len(res[0].resources), 4)
         for r in res[0].resources:
             self.assertIsInstance(r, Resource)
+
+    def test_resource_expression2(self):
+        code = """
+            contrail_query_engine_config {
+                'DEFAULT/hostip'          : value => $host_control_ip;
+                'DEFAULT/cassandra_server_list'       : value => "$cassandra_server_list";
+                'DEFAULT/log_local'        : value => '1';
+                'DEFAULT/log_level'        : value => 'SYS_NOTICE';
+                'DEFAULT/log_file'         : value => '/var/log/contrail/contrail-query-engine.log';
+                'DEFAULT/collectors'       : value => $collector_ip_port_list;
+                'REDIS/port'               : value => '6379';
+                'REDIS/server'             : value => '127.0.0.1';
+            }
+        """
+
+        res = parse(code)[0]
+        self.assertIsInstance(res[0], ResourceExpression)
+        self.assertEqual(len(res[0].resources), 8)
+        for r in res[0].resources:
+            self.assertIsInstance(r, Resource)
