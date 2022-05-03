@@ -173,6 +173,7 @@ def parse(script):
     states = (
         ('comment', 'exclusive'),
         ('regex', 'exclusive'),
+        ('docs', 'exclusive')
     )
 
     # Other
@@ -253,6 +254,17 @@ def parse(script):
     def t_regex_expression(t):
         r"((\\.)|[^\/])+"
         t.type = "REGEXPRESSION"
+        return t
+
+    def t_docs_END(t):
+        r'\|'
+        t.type = 'BAR'
+        t.lexer.begin('INITIAL')
+        return t
+
+    def t_docs_string(t):
+        r"(\n|[^\|])+"
+        t.type = "STRING"
         return t
 
     def t_octal_INTEGER(t):
@@ -1162,6 +1174,14 @@ def parse(script):
     def p_value_string(p):
         r'value : STRING'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+
+    def p_value_string_docs(p):
+        r'value : AT LPAREN STRING ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[8])
+
+    def p_start_docs(p):
+        r'start_docs :'
+        lexer.begin('docs')
 
     def p_value_false(p):
         r'value : FALSE'

@@ -25,13 +25,18 @@ class TestResource(unittest.TestCase):
                 regex => /$\/*hello*\/^/,
                 undefined => undef,
                 array +> plus,
+                docs => @("COMMAND"/L)
+test123
+kek
+wooo
+| COMMAND
             } 
         """
 
         res = parse(code)[0]
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(len(res[0].attributes), 13)
+        self.assertEqual(len(res[0].attributes), 14)
         self.assertEqual(res[0].type.value, "test")
         self.assertEqual(res[0].title.value, "test123")
 
@@ -53,6 +58,7 @@ class TestResource(unittest.TestCase):
         self.assertEqual(res[0].attributes[4].line, 7)
         self.assertEqual(res[0].attributes[11].value.value, None)
         self.assertEqual(res[0].attributes[12].value.value, "plus")
+        self.assertEqual(res[0].attributes[13].value.value, "\ntest123\nkek\nwooo\n")
 
     def test_resource_without_comma(self):
         code = """
