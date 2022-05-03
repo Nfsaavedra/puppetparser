@@ -411,10 +411,12 @@ def parse(script):
     def p_left_value(p):
         r'left_value : ID'
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_left_value_access(p):
         r'left_value : access'
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
 
     def p_assignment_array(p):
         r'assignment : array EQUAL array'
@@ -919,6 +921,7 @@ def parse(script):
     def p_access(p):
         r'access : expression LPARENR expressionlist RPARENR'
         p[0] = Operation((p[1], p[3]), p[2] + p[4])
+        p.set_lineno(0, p.lineno(1))
 
     ## Reference
     def p_expression_reference(p):

@@ -29,6 +29,7 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].block[0].value.value, 123)
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
+        self.assertEqual(res[0].block[0].line, 3)
         self.assertEqual(res[0].block[1].line, 4)
 
     def test_assignment_array(self):
