@@ -596,11 +596,11 @@ def parse(script):
 
     def p_parameter_no_default(p):
         r'parameter : data_type ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], None)
 
     def p_parameter_only_name(p):
         r'parameter : ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], None)
 
     def p_parameter_default_without_type(p):
         r'parameter : ID EQUAL expression'
@@ -612,11 +612,11 @@ def parse(script):
 
     def p_parameter_no_default_extra(p):
         r'parameter : ID ARITH_MUL ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], None)
 
     def p_parameter_only_name_extra(p):
         r'parameter : ARITH_MUL ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], "")
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], None)
 
     def p_parameter_default_without_type_extra(p):
         r'parameter : ARITH_MUL ID EQUAL expression'
