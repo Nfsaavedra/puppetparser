@@ -301,6 +301,7 @@ def parse(script):
     def t_STRING(t):
         r"(\'([^\\]|(\\(\n|.)))*?\')|(\"([^\\]|(\\(\n|.)))*?\")"
         t.value = t.value[1:-1]
+        t.lexer.lineno += t.value.count("\n")
         return t
 
     def t_ANY_error(t):
