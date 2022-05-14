@@ -15,3 +15,4 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[1], Contain)
         self.assertEqual(res[1].cont[0].value, "base::linux")
         self.assertEqual(res[1].line, 3)
+        self.assertEqual(res[1].end_line, 3)

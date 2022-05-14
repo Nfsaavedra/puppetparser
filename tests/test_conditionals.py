@@ -45,6 +45,8 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Unless)
+        self.assertEqual(res[0].line, 2)
+        self.assertEqual(res[0].col, 13)
         self.assertIsInstance(res[0].condition, Operation)
         self.assertIsInstance(res[0].block[0], Resource)
         self.assertIsInstance(res[0].elseblock, Unless)
@@ -61,6 +63,8 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Case)
+        self.assertEqual(res[0].line, 2)
+        self.assertEqual(res[0].end_line, 6)
         self.assertIsInstance(res[0].control, Operation)
         self.assertEqual(len(res[0].matches), 3)
         self.assertEqual(res[0].matches[0].expressions[0].value, 'RedHat')
@@ -81,6 +85,8 @@ class TestClass(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], Assignment)
         self.assertIsInstance(res[0].value, Selector)
+        self.assertEqual(res[0].value.line, 2)
+        self.assertEqual(res[0].value.end_line, 6)
         self.assertIsInstance(res[0].value.control, Operation)
         assertHash(self, res[0].value.hash.value, {
             'Redhat': 'wheel', 

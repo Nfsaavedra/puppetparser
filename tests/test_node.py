@@ -62,6 +62,10 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Node)
+        self.assertEqual(res[0].line, 2)
+        self.assertEqual(res[0].col, 13)
+        self.assertEqual(res[0].end_line, 11)
+        self.assertEqual(res[0].end_col, 14)
         self.assertEqual(res[0].name, "default")
         self.assertEqual(len(res[0].block), 2)
         for e in res[0].block:

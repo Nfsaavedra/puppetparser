@@ -24,3 +24,5 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].attributes[1].value.arguments[0].type, "File")
         assertArray(self, res[0].attributes[1].value.arguments[0].references, ["/etc/first.conf", "test"])
         self.assertEqual(res[0].attributes[1].value.arguments[0].line, 4)
+        self.assertEqual(res[0].attributes[1].value.arguments[0].end_line, 4)
+        self.assertEqual(res[0].attributes[1].value.arguments[0].end_col, 58)

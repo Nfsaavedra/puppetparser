@@ -12,9 +12,13 @@ class TestClass(unittest.TestCase):
             } 
         """
 
-        res, comments = parse(code)
+        res, _ = parse(code)
         self.assertIsInstance(res[0], Resource)
         self.assertIsInstance(res[0].attributes[0].value, Operation)
+        self.assertEqual(res[0].attributes[0].value.line, 3)
+        self.assertEqual(res[0].attributes[0].value.col, 27)
+        self.assertEqual(res[0].attributes[0].value.end_line, 3)
+        self.assertEqual(res[0].attributes[0].value.end_col, 42)
         self.assertEqual(res[0].attributes[0].value.operator, "and")
         self.assertEqual(res[0].attributes[0].value.arguments[0].operator, "!")
         self.assertEqual(res[0].attributes[0].value.arguments[1].value, True)

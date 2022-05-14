@@ -26,6 +26,10 @@ class TestClass(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], PuppetClass)
         self.assertEqual(res[0].name, "webserver")
+        self.assertEqual(res[0].line, 2)
+        self.assertEqual(res[0].col, 13)
+        self.assertEqual(res[0].end_line, 16)
+        self.assertEqual(res[0].end_col, 14)
         self.assertEqual(res[0].inherits, "webserver2")
         self.assertEqual(res[0].parameters[0].name, "$content")
         self.assertEqual(res[0].parameters[0].type, "String")

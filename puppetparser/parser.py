@@ -223,8 +223,9 @@ def parse(script):
 
     def t_COMMENT(t):
         r'\#.*(\n?)'
-        comments.append(Comment(t.lexer.lineno, 
-                find_column(script, t.lexpos), t.value[1:-1]))
+        column = find_column(script, t.lexpos)
+        value = t.value[1:-1]
+        comments.append(Comment(t.lexer.lineno, column, t.lexer.lineno, column + len(value), value))
         t.lexer.lineno += 1
 
     current_comment = [0, 0, ""]
@@ -237,7 +238,11 @@ def parse(script):
 
     def t_comment_END(t):
         r'\*\/'
-        comments.append(Comment(current_comment[0], current_comment[1], current_comment[2]))
+        line = current_comment[0]
+        column = current_comment[1]
+        new_lines = current_comment[2].count('\n')
+        comments.append(Comment(line, column, line + new_lines, 
+                len(current_comment[2].split('\n')[-1]), current_comment[2]))
         t.lexer.begin('INITIAL')
 
     def t_comment_content(t):
@@ -351,7 +356,9 @@ def parse(script):
     def p_class(p):
         r'class : CLASS class_header LBRACKET block RBRACKET'
         p[0] = PuppetClass(p.lineno(1), 
-                find_column(script, p.lexpos(1)), p[2][0], p[4], p[2][2], p[2][1])
+                find_column(script, p.lexpos(1)), p.lineno(5), 
+                    find_column(script, p.lexpos(5)) + 1, p[2][0], 
+                        p[4], p[2][2], p[2][1])
 
     def p_class_header(p):
         r'class_header : ID LPAREN parameters RPAREN'
@@ -385,39 +392,39 @@ def parse(script):
         r'class : CLASS LBRACKET resource_list RBRACKET'
         if (len(p[3]) == 1):
             p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
-                p[3][0][0], None, None, p[3][0][1])
+                p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[3][0][0], None, None, p[3][0][1])
         else:
-            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[0], None, None, r[2]), p[3]))
+            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[4], r[5], r[0], None, None, r[2]), p[3]))
 
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'
-        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, p[2], p[4])
 
     def p_node_id(p):
         r'node : NODE ID LBRACKET block RBRACKET'
-        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, p[2], p[4])
 
     def p_node_regex(p):
         r'node : NODE regex LBRACKET block RBRACKET'
-        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, p[2], p[4])
 
     def p_node_default(p):
         r'node : NODE DEFAULT LBRACKET block RBRACKET'
-        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+        p[0] = Node(p.lineno(1), find_column(script, p.lexpos(1)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, p[2], p[4])
 
     def p_assignment(p):
-        r'assignment : left_value EQUAL expression'
-        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        r'assignment : ID EQUAL expression'
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3].end_line, p[3].end_col, p[1], p[3])
 
-    def p_left_value(p):
-        r'left_value : ID'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
-
-    def p_left_value_access(p):
-        r'left_value : access'
-        p[0] = p[1]
-        p.set_lineno(0, p.lineno(1))
+    def p_assignment_access(p):
+        r'assignment : access EQUAL expression'
+        p[0] = Assignment(p[1].line, p[1].col, 
+                p[3].end_line, p[3].end_col, p[1], p[3])
 
     def p_assignment_array(p):
         r'assignment : array EQUAL array'
@@ -427,7 +434,8 @@ def parse(script):
             if not re.match(r"^\$[a-z0-9_][a-zA-Z0-9_]*$", id.value) and not \
                     re.match(r"^\$([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*::[a-z0-9_][a-zA-Z0-9_]*$", id.value):
                 raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3].end_line, p[3].end_col, p[1], p[3])
 
     def p_assignment_hash(p):
         r'assignment : array EQUAL hash'
@@ -439,11 +447,13 @@ def parse(script):
             if id not in p[3].value:
                 raise InvalidPuppetScript(f'Syntax error')
 
-        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3].end_line, p[3].end_col, p[1], p[3])
 
     def p_assignment_type_alias(p):
         r'assignment : TYPE ID_TYPE EQUAL expression'
-        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), p[1] + " " + p[2], p[4])
+        p[0] = Assignment(p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[4].end_line, p[4].end_col, p[1] + " " + p[2], p[4])
 
     def p_block(p):
         r'block : statement block'
@@ -459,13 +469,15 @@ def parse(script):
 
     def p_resource_id(p):
         r'resource : ID LBRACKET resource_list RBRACKET'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", id.value):
             raise InvalidPuppetScript(f'Syntax error')
         if (len(p[3]) == 1):
-            p[0] = Resource(id.line, id.col, id, p[3][0][0], p[3][0][1])
+            p[0] = Resource(id.line, id.col, p.lineno(4), 
+                find_column(script, p.lexpos(4)) + 1, id, p[3][0][0], p[3][0][1])
         else:
-            resources = list(map(lambda r: Resource(r[2], r[3], id, r[0], r[1]), p[3]))
+            resources = list(map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[3]))
             default = None
             for r in resources:
                 if r.title.value == "default":
@@ -473,16 +485,18 @@ def parse(script):
                     break
             resources = list(filter(lambda r: r.title.value != "default", resources))
 
-            p[0] = ResourceExpression(id.line, id.col, default, resources)
+            p[0] = ResourceExpression(id.line, id.col, p.lineno(4), 
+                find_column(script, p.lexpos(4)) + 1, default, resources)
 
     def p_resource(p):
         r'resource : key LBRACKET resource_list RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1].value):
             raise InvalidPuppetScript(f'Syntax error')
         if (len(p[3]) == 1):
-            p[0] = Resource(p[1].line, p[1].col, p[1], p[3][0][0], p[3][0][1])
+            p[0] = Resource(p[1].line, p[1].col, p.lineno(4), 
+                find_column(script, p.lexpos(4)) + 1, p[1], p[3][0][0], p[3][0][1])
         else:
-            resources = map(lambda r: Resource(r[2], r[3], p[1], r[0], r[1]), p[3])
+            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], p[1], r[0], r[1]), p[3])
             default = None
             for r in resources:
                 if r.title.value == "default":
@@ -490,7 +504,8 @@ def parse(script):
                     break
             resources = list(filter(lambda r: r.title.value != "default", resources))
 
-            p[0] = ResourceExpression(p[1].line, p[1].col, default, resources)
+            p[0] = ResourceExpression(p[1].line, p[1].col, p.lineno(4), 
+                find_column(script, p.lexpos(4)) + 1, default, resources)
 
     def p_resource_list(p):
         r'resource_list : resource_body DOT_COMMA resource_list'
@@ -506,69 +521,88 @@ def parse(script):
 
     def p_resource_body(p):
         r'resource_body : expression COLON attributes'
-        p[0] = (p[1], p[3], p.lineno(1), find_column(script, p.lexpos(1)))
+        if len(p[3]) > 0:
+            p[0] = (p[1], p[3], p.lineno(1), find_column(script, p.lexpos(1)), 
+                p[3][-1].end_line, p[3][-1].end_col)
+        else:
+            p[0] = (p[1], p[3], p.lineno(1), find_column(script, p.lexpos(1)), 
+                p.lineno(2), find_column(script, p.lexpos(2)))
 
     def p_virtual_resource(p):
         r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@" + p[2], p[4], p[6])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(7), find_column(script, p.lexpos(7)) + 1, "@" + p[2], p[4], p[6])
 
     def p_exported_resource(p):
         r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
         if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
             raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), "@@" + p[3], p[4], p[7])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(8), find_column(script, p.lexpos(8)) + 1, "@@" + p[3], p[4], p[7])
 
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
         if p[1].type != "Resource":
             raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3], p[5])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(6), find_column(script, p.lexpos(6)) + 1, p[1], p[3], p[5])
 
     def p_change_resource(p):
         r'resource : reference LBRACKET attributes RBRACKET'
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], None, p[3])
 
     def p_change_resource_collector(p):
         r'resource : resource_collector LBRACKET attributes RBRACKET'
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], None, p[3])
 
     def p_resource_default(p):
         r'resource : ID_TYPE LBRACKET attributes RBRACKET'
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None, p[3])
+        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], None, p[3])
 
     def p_resource_declaration(p):
         r'resource : DEFINE ID LPAREN parameters RPAREN LBRACKET block RBRACKET'
-        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[7])
+        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(8), find_column(script, p.lexpos(8)) + 1, p[2], p[4], p[7])
 
     def p_resource_declaration_no_parameters(p):
         r'resource : DEFINE ID LBRACKET block RBRACKET'
-        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), p[2], [], p[4])
+        p[0] = ResourceDeclaration(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], [], p[4])
 
     def p_resource_collector(p):
         r'resource_collector : ID_TYPE LANGLEBRACKET rc_expression RANGLEBRACKET'
-        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
+        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], p[3])
 
     def p_resource_collector_empty(p):
         r'resource_collector : ID_TYPE LANGLEBRACKET RANGLEBRACKET'
-        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], None)
+        p[0] = ResourceCollector(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + 1, p[1], None)
 
     def p_resource_collector_expression_equal(p):
         r'rc_expression : rc_expression CMP_EQUAL rc_expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+                (p[1], p[3]), p[2])
 
     def p_resource_collector_expression_not_equal(p):
         r'rc_expression : rc_expression CMP_NOT_EQUAL rc_expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+                (p[1], p[3]), p[2])
 
     def p_resource_collector_expression_and(p):
         r'rc_expression : rc_expression BOOL_AND rc_expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+                (p[1], p[3]), p[2])
 
     def p_resource_collector_expression_or(p):
         r'rc_expression : rc_expression BOOL_OR rc_expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+                (p[1], p[3]), p[2])
 
     def p_resource_collector_expression_paren(p):
         r'rc_expression : LPAREN rc_expression RPAREN'
@@ -592,35 +626,43 @@ def parse(script):
 
     def p_parameter(p):
         r'parameter : data_type ID EQUAL expression'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)),
+            p[4].end_line, p[4].end_col, p[1], p[2], p[4])
 
     def p_parameter_no_default(p):
         r'parameter : data_type ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], None)
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(2), find_column(script, p.lexpos(2)) + len(p[2]), p[1], p[2], None)
 
     def p_parameter_only_name(p):
         r'parameter : ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], None)
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), "", p[1], None)
 
     def p_parameter_default_without_type(p):
         r'parameter : ID EQUAL expression'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p[3].end_line, p[3].end_col, "", p[1], p[3])
 
     def p_parameter_extra(p):
         r'parameter : ID ARITH_MUL ID EQUAL expression'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], p[4])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)),
+            p[5].end_line, p[5].end_col, p[1], p[2], p[4])
 
     def p_parameter_no_default_extra(p):
         r'parameter : ID ARITH_MUL ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[2], None)
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + len(p[3]), p[1], p[2], None)
 
     def p_parameter_only_name_extra(p):
         r'parameter : ARITH_MUL ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], None)
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(2), find_column(script, p.lexpos(2)) + len(p[2]), "", p[1], None)
 
     def p_parameter_default_without_type_extra(p):
         r'parameter : ARITH_MUL ID EQUAL expression'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), "", p[1], p[3])
+        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)),
+            p[4].end_line, p[4].end_col, "", p[1], p[3])
 
     def p_attributes(p):
         r'attributes : attribute COMMA attributes'
@@ -636,7 +678,8 @@ def parse(script):
 
     def p_attribute(p):
         r'attribute : ID HASH_ROCKET expression'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
         p[0] = Attribute(id, p[3])
 
     def p_attribute_key(p):
@@ -645,11 +688,14 @@ def parse(script):
 
     def p_attribute_splat(p):
         r'attribute : ARITH_MUL HASH_ROCKET expression'
-        p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = Attribute(id, p[3])
 
     def p_attribute_plussign(p):
         r'attribute : ID PLUSIGNMENT expression'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
         p[0] = Attribute(id, p[3])
 
     def p_attribute_key_plussign(p):
@@ -658,78 +704,97 @@ def parse(script):
 
     def p_attribute_splat_plussign(p):
         r'attribute : ARITH_MUL PLUSIGNMENT expression'
-        p[0] = Attribute(Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1]), p[3])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = Attribute(id, p[3])
     
     def p_key_site(p):
         r'key : SITE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_import(p):
         r'key : IMPORT'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_unless(p):
         r'key : UNLESS'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_type(p):
         r'key : TYPE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_include(p):
         r'key : INCLUDE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_require(p):
         r'key : REQUIRE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_contain(p):
         r'key : CONTAIN'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_tag(p):
         r'key : TAG'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_debug(p):
         r'key : DEBUG'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_info(p):
         r'key : INFO'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_notice(p):
         r'key : NOTICE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_warning(p):
         r'key : WARNING'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_err(p):
         r'key : ERR'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_attributekey_fail(p):
         r'key : FAIL'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_key_realize(p):
         r'key : REALIZE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_array(p):
         r'array : LPARENR expressionlist RPARENR'
-        p[0] = Array(p.lineno(1), find_column(script, p.lexpos(1)), p[2])
+        p[0] = Array(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + 1, p[2])
 
     def p_hash(p):
         r'hash : LBRACKET keyvalue_pairs RBRACKET'
         res = {}
         for kv in p[2]:
             res[kv[0]] = kv[1]
-        p[0] = Hash(p.lineno(1), find_column(script, p.lexpos(1)), res)
+        p[0] = Hash(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + 1, res)
 
     def p_keyvalue_pairs(p):
         r'keyvalue_pairs : keyvalue COMMA keyvalue_pairs'
@@ -793,125 +858,148 @@ def parse(script):
 
     def p_expression_access_section(p):
         r'expression : expression LPARENR INTEGER COMMA INTEGER RPARENR'
-        p[0] = Operation((p[1], p[3], p[5]), p[2] + p[4] + p[6])
+        p[0] = Operation(p[1].line, p[1].col, p.lineno(6), find_column(script, p.lexpos(6)) + 1, 
+            (p[1], p[3], p[5]), p[2] + p[4] + p[6])
         p.set_lineno(0, p.lineno(1))
 
     ## Selector ##
     def p_expression_selector(p):
         r'expression : expression QUESTION_MARK hash'
-        p[0] = Selector(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[3])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Selector(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p[3].end_line, p[3].end_col, p[1], p[3])
+        p.set_lineno(0, p.lineno(1))
 
     ## Comparison ##
     def p_expression_equal(p):
         r'expression : expression CMP_EQUAL expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_not_equal(p):
         r'expression : expression CMP_NOT_EQUAL expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_less_than(p):
         r'expression : expression CMP_LESS_THAN expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_greater_than(p):
         r'expression : expression CMP_GREATER_THAN expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_less_than_or_equal(p):
         r'expression : expression CMP_LESS_THAN_OR_EQUAL expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_greater_than_or_equal(p):
         r'expression : expression CMP_GREATER_THAN_OR_EQUAL expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_regex_match(p):
         r'expression : expression CMP_REGEX_MATCH expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_regex_not_match(p):
         r'expression : expression CMP_REGEX_NOT_MATCH expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_in(p):
         r'expression : expression CMP_IN expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     ## Boolean
     def p_expression_and(p):
         r'expression : expression BOOL_AND expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_or(p):
         r'expression : expression BOOL_OR expression'
-        p[0] = Operation((p[1], p[3]), p[2])
-        p.set_lineno(0,p.lineno(1))
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
+        p.set_lineno(0, p.lineno(1))
 
     def p_expression_not(p):
         r'expression : BOOL_NOT expression'
-        p[0] = Operation((p[2],), p[1])
+        p[0] = Operation(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p[2].end_line, p[2].end_col, (p[2],), p[1])
         p.set_lineno(0, p.lineno(1))
 
     ## Arithmetic
     def p_expression_negation(p):
         r'expression : ARITH_SUB expression %prec ARITH_MINUS'
-        p[0] = Operation((p[2],), p[1])
+        p[0] = Operation(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p[2].end_line, p[2].end_col, (p[2],), p[1])
         p.set_lineno(0, p.lineno(1))
 
     # It also works for array concatenation and hash merging
     def p_expression_addition(p):
         r'expression : expression ARITH_ADD expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     # It also works for array and hash removal
     def p_expression_subtraction(p):
         r'expression : expression ARITH_SUB expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     def p_expression_division(p):
         r'expression : expression ARITH_DIV expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     def p_expression_multiplication(p):
         r'expression : expression ARITH_MUL expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     def p_expression_modulo(p):
         r'expression : expression ARITH_MOD expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     # It also works for array append
     def p_expression_left_shift(p):
         r'expression : expression ARITH_LSHIFT expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     def p_expression_right_shift(p):
         r'expression : expression ARITH_RSHIFT expression'
-        p[0] = Operation((p[1], p[3]), p[2])
+        p[0] = Operation(p[1].line, p[1].col, p[3].end_line, p[3].end_col,
+            (p[1], p[3]), p[2])
         p.set_lineno(0, p.lineno(1))
 
     ## Array Operations
     def p_expression_splat(p):
         r'expression : ARITH_MUL expression %prec ARRAY_SPLAT'
-        p[0] = Operation((p[2],), p[1])
+        p[0] = Operation(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p[2].end_line, p[2].end_col, (p[2],), p[1])
         p.set_lineno(0, p.lineno(1))
 
     def p_expression_access(p):
@@ -921,7 +1009,8 @@ def parse(script):
 
     def p_access(p):
         r'access : expression LPARENR expressionlist RPARENR'
-        p[0] = Operation((p[1], p[3]), p[2] + p[4])
+        p[0] = Operation(p[1].line, p[1].col, p.lineno(4), find_column(script, p.lexpos(4)) + 1,
+            (p[1], p[3]), p[2] + p[4])
         p.set_lineno(0, p.lineno(1))
 
     ## Reference
@@ -933,72 +1022,93 @@ def parse(script):
     def p_reference(p):
         r'reference : ID_TYPE LPARENR expressionlist RPARENR'
         p[0] = Reference(p.lineno(1), find_column(script, p.lexpos(1)),
-                p[1], p[3])   
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], p[3])   
 
     # Function calls
     def p_statement_function(p):
         r'statement_function : key expressionlist'
-        p[0] = globals()[statement_functions_class[p[1].value]]\
-                (p[1].line, p[1].col, p[2])
+        if len(p[2]) > 0:
+            p[0] = globals()[statement_functions_class[p[1].value]]\
+                (p[1].line, p[1].col, p[2][-1].end_line, p[2][-1].end_col, p[2])
+        else:
+            p[0] = globals()[statement_functions_class[p[1].value]]\
+                (p[1].line, p[1].col, p[1].line, p[1].col + len(p[1]), p[2])
 
     def p_statement_function_paren(p):
         r'statement_function : key LPAREN expressionlist RPAREN'
         p[0] = globals()[statement_functions_class[p[1].value]]\
-                (p[1].line, p[1].col, p[3])
+                (p[1].line, p[1].col, p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[3])
 
     def p_function_call_prefix(p):
         r'function_call : ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
-        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = FunctionCall(id.line, id.col, p.lineno(4), 
+            find_column(script, p.lexpos(4)) + 1, id, p[3], None)
 
     def p_function_call_type(p):
         r'function_call : TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
-        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = FunctionCall(id.line, id.col, 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, id, p[3], None)
 
     def p_function_call_id_type(p):
         r'function_call : ID_TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
-        p[0] = FunctionCall(id.line, id.col, id, p[3], None)
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = FunctionCall(id.line, id.col, 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, id, p[3], None)
 
     def p_function_call_prefix_lambda(p):
         r'function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
-        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
-        p[0] = FunctionCall(id.line, id.col, id, p[3], p[5])
+        id = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        p[0] = FunctionCall(id.line, id.col, 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, id, p[3], p[5])
 
     def p_function_call_chained(p):
         r'function_call : expression DOT ID %prec NO_LAMBDA'
-        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
-        p[0] = FunctionCall(id.line, id.col, id, [p[1]], None)
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + len(p[3]), p[3])
+        p[0] = FunctionCall(id.line, id.col, p.lineno(3), 
+            find_column(script, p.lexpos(3)) + len(p[3]), id, [p[1]], None)
 
     def p_function_call_chained_args(p):
         r'function_call : expression DOT ID LPAREN expressionlist RPAREN %prec NO_LAMBDA'
-        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
-        p[0] = FunctionCall(id.line, id.col, id, [p[1]] + p[5], None) 
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + len(p[3]), p[3])
+        p[0] = FunctionCall(id.line, id.col, p.lineno(6), 
+            find_column(script, p.lexpos(6)) + 1, id, [p[1]] + p[5], None) 
 
     def p_function_call_chained_lambda(p):
         r'function_call : expression DOT ID lambda %prec LAMBDA'
-        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
-        p[0] = FunctionCall(id.line, id.col, id, [p[1]], p[4])
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + len(p[3]), p[3])
+        p[0] = FunctionCall(id.line, id.col, p[4].end_line, 
+            p[4].end_col, id, [p[1]], p[4])
 
     def p_function_call_chained_lambda_args(p):
         r'function_call : expression DOT ID LPAREN expressionlist RPAREN lambda %prec LAMBDA'
-        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), p[3])
-        p[0] = FunctionCall(id.line, id.col, id, [p[1]] + p[5], p[7]) 
+        id = Value(p.lineno(3), find_column(script, p.lexpos(3)), 
+            p.lineno(3), find_column(script, p.lexpos(3)) + len(p[3]), p[3])
+        p[0] = FunctionCall(id.line, id.col, p[7].end_line, 
+            p[7].end_col, id, [p[1]] + p[5], p[7]) 
 
     def p_lambda(p):
         r'lambda : BAR parameters BAR LBRACKET block RBRACKET'
-        p[0] = Lambda(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[5])
+        p[0] = Lambda(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(6), find_column(script, p.lexpos(6)) + 1, p[2], p[5])
 
     def p_sensitive(p):
         r'function_call : SENSITIVE LPAREN STRING RPAREN'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], (p[3],), None) 
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[1], (p[3],), None) 
 
     def p_sensitive_id(p):
         r'function_call : SENSITIVE DOT ID LPAREN STRING RPAREN'
         p[0] = FunctionCall(p.lineno(1), find_column(script, p.lexpos(1)), 
-                p[1], (p[5],), None) 
+            p.lineno(6), find_column(script, p.lexpos(6)) + 1, p[1], (p[5],), None) 
 
     # Chaining arrows
     def p_chaining_left(p):
@@ -1102,48 +1212,56 @@ def parse(script):
     # Function declaration
     def p_function(p):
         r'function : FUNCTION ID LPAREN parameters RPAREN LBRACKET block RBRACKET'
-        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)), p[2],
-                p[4], None, p[7])
+        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(8), find_column(script, p.lexpos(8)) + 1, p[2], p[4], None, p[7])
 
     def p_function_return(p):
-        r'function : FUNCTION ID LPAREN parameters RPAREN ARITH_RSHIFT data_type LBRACKET block RBRACKET '
-        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)), p[2],
-                p[4], p[7], p[9])
+        r'function : FUNCTION ID LPAREN parameters RPAREN ARITH_RSHIFT data_type LBRACKET block RBRACKET'
+        p[0] = Function(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(10), find_column(script, p.lexpos(10)) + 1, p[2], p[4], p[7], p[9])
 
     # Conditional statements
     def p_if(p):
         r'if : IF expression LBRACKET block RBRACKET'
-        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], None)
 
     def p_if_elsif(p):
         r'if : IF expression LBRACKET block RBRACKET elsif'
-        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[6])
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], p[6])
 
     def p_elif(p):
         r'elsif : ELSIF expression LBRACKET block RBRACKET'
-        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], None)
 
     def p_elif_elif(p):
         r'elsif : ELSIF expression LBRACKET block RBRACKET elsif'
-        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], p[6])
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], p[6])
 
     def p_else(p):
         r'elsif : ELSE LBRACKET block RBRACKET'
-        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)), None, p[3], None)
+        p[0] = If(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(4), find_column(script, p.lexpos(4)) + 1, None, p[3], None)
 
     def p_unless(p):
         r'unless : UNLESS expression LBRACKET block RBRACKET'
-        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], None)
+        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], None)
 
     def p_unless_else(p):
         r'unless : UNLESS expression LBRACKET block RBRACKET ELSE LBRACKET block RBRACKET'
-
-        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4], 
-            Unless(p.lineno(6), find_column(script, p.lexpos(6)), None, p[8], None))
+        un_else = Unless(p.lineno(6), find_column(script, p.lexpos(6)), 
+            p.lineno(9), find_column(script, p.lexpos(9)) + 1, None, p[8], None)
+        p[0] = Unless(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4], un_else)
 
     def p_case(p):
         r'case : CASE expression LBRACKET matches RBRACKET'
-        p[0] = Case(p.lineno(1), find_column(script, p.lexpos(1)), p[2], p[4])
+        p[0] = Case(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[2], p[4])
 
     def p_matches(p):
         r'matches : match matches'
@@ -1155,7 +1273,8 @@ def parse(script):
         
     def p_match(p):
         r'match : expressionlist COLON LBRACKET block RBRACKET'
-        p[0] = Match(p.lineno(1), find_column(script, p.lexpos(1)), p[1], p[4])
+        p[0] = Match(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(5), find_column(script, p.lexpos(5)) + 1, p[1], p[4])
 
     ### Data Type ###
     def p_data_type(p):
@@ -1177,11 +1296,13 @@ def parse(script):
 
     def p_value_string(p):
         r'value : STRING'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_string_docs(p):
         r'value : AT LPAREN STRING ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ID_TYPE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[8])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(10), find_column(script, p.lexpos(10)) + len(p[10]), p[8])
 
     def p_start_docs(p):
         r'start_docs :'
@@ -1189,35 +1310,43 @@ def parse(script):
 
     def p_value_false(p):
         r'value : FALSE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), False)
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), False)
 
     def p_value_true(p):
         r'value : TRUE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), True)
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), True)
 
     def p_value_integer(p):
         r'value : INTEGER'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), int(p[1]))
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(str(p[1])), int(p[1]))
 
     def p_value_float(p):
         r'value : FLOAT'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), float(p[1]))
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(str(p[1])), float(p[1]))
 
     def p_value_id(p):
         r'value : ID'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_type_id(p):
         r'value : ID_TYPE'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_undef(p):
         r'value : UNDEF'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), None)
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), None)
 
     def p_value_default(p):
         r'value : DEFAULT'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), p[1])
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_stat_func(p):
         r'value : key'
@@ -1229,7 +1358,8 @@ def parse(script):
 
     def p_regex(p):
         r'regex : ARITH_DIV start_regex REGEXPRESSION ARITH_DIV'
-        p[0] = Regex(p.lineno(1), find_column(script, p.lexpos(1)), p[3])
+        p[0] = Regex(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(4), find_column(script, p.lexpos(4)), p[3])
     
     def p_start_regex(p):
         r'start_regex :'

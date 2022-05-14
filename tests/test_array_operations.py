@@ -13,9 +13,10 @@ class TestClass(unittest.TestCase):
             }
         """
 
-        res, comments = parse(code)
+        res, _ = parse(code)
         self.assertIsInstance(res[1], Resource)
         self.assertIsInstance(res[1].attributes[0].value, Operation)
         self.assertEqual(res[1].attributes[0].value.operator, "*")
         self.assertEqual(res[1].attributes[1].value.operator, "<<")
         self.assertEqual(res[1].attributes[1].line, 5)
+        self.assertEqual(res[1].attributes[1].col, 17)

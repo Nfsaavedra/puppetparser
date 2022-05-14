@@ -25,3 +25,4 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[-1], Fail)
         self.assertEqual(res[-1].args[0].value, "FAIL")
         self.assertEqual(res[2].args[0].line, 4)
+        self.assertEqual(res[2].args[0].end_line, 4)

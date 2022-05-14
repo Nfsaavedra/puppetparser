@@ -34,6 +34,10 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
+        self.assertEqual(res[0].line, 2)
+        self.assertEqual(res[0].col, 13)
+        self.assertEqual(res[0].end_line, 13)
+        self.assertEqual(res[0].end_col, 14)
         self.assertIsInstance(res[0].op1, Resource)
         self.assertIsInstance(res[0].op2, Chaining)
         self.assertIsInstance(res[0].op2.op1, Resource)

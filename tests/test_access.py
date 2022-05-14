@@ -18,3 +18,6 @@ class TestClass(unittest.TestCase):
         assertArray(self, res[0].value.value, [1, 2, 3])
         self.assertEqual(res[1].attributes[0].value.operator, "[]")
         self.assertEqual(res[1].attributes[0].line, 4)
+        self.assertEqual(res[1].attributes[0].col, 17)
+        self.assertEqual(res[1].attributes[0].end_line, 4)
+        self.assertEqual(res[1].attributes[0].end_col, 34)

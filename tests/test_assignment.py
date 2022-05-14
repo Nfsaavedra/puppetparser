@@ -30,7 +30,12 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
         self.assertEqual(res[0].block[0].line, 3)
+        self.assertEqual(res[0].block[0].col, 17)
+        self.assertEqual(res[0].block[0].end_col, 29)
         self.assertEqual(res[0].block[1].line, 4)
+        self.assertEqual(res[0].block[1].col, 17)
+        self.assertEqual(res[0].block[1].end_line, 6)
+        self.assertEqual(res[0].block[1].end_col, 18)
 
     def test_assignment_array(self):
         code = """
@@ -57,6 +62,7 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
         self.assertEqual(res[0].block[2].line, 8)
+        self.assertEqual(res[0].block[2].col, 17)
 
     def test_assignment_hash(self):
         code = """
@@ -83,6 +89,7 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0].block[1], Resource)
         self.assertIsInstance(res[0].block[2], Resource)
         self.assertEqual(res[0].block[2].line, 8)
+        self.assertEqual(res[0].block[2].col, 17)
 
     def test_assignment_type_alias(self):
         code = """
