@@ -31,7 +31,6 @@ def parse(script):
         'IN',
         'INHERITS',
         'NODE',
-        'PRIVATE',
         'PRODUCES',
         'REGEXP',
         'SITE',
@@ -157,7 +156,6 @@ def parse(script):
         'inherits': 'INHERITS',
         'node': 'NODE',
         'or': 'BOOL_OR',
-        'private': 'PRIVATE',
         'produces': 'PRODUCES',
         'regexp': 'REGEXP',
         'site': 'SITE',
@@ -607,7 +605,7 @@ def parse(script):
         p[0] = p[2]
 
     def p_resource_collector_expression_value(p):
-        r'rc_expression : value'
+        r'rc_expression : expression'
         p[0] = p[1]
 
     def p_parameters(p):
@@ -706,6 +704,16 @@ def parse(script):
             p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
         p[0] = Attribute(id, p[3])
     
+    def p_key_default(p):
+        r'key : DEFAULT'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+
+    def p_key_node(p):
+        r'key : NODE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+
     def p_key_site(p):
         r'key : SITE'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)), 
@@ -1141,7 +1149,7 @@ def parse(script):
         p[0] = p[1]
 
     def p_chaining_value_id(p):
-        'chaining_value : ID'
+        'chaining_value : value'
         p[0] = p[1]
 
     def p_chaining_value_collector(p):
@@ -1302,6 +1310,41 @@ def parse(script):
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
             p.lineno(10), find_column(script, p.lexpos(10)) + len(p[10]), p[8])
 
+    def p_value_string_docs_sub(p):
+        r'value : AT LPAREN STRING ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ARITH_SUB ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(11), find_column(script, p.lexpos(11)) + len(p[10]), p[8])
+
+    def p_value_string_docs_syntax(p):
+        r'value : AT LPAREN STRING COLON ID ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(12), find_column(script, p.lexpos(12)) + len(p[10]), p[10])
+
+    def p_value_string_docs_syntax_sub(p):
+        r'value : AT LPAREN STRING COLON ID ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ARITH_SUB ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(13), find_column(script, p.lexpos(13)) + len(p[10]), p[10])
+
+    def p_value_string_docs_id(p):
+        r'value : AT LPAREN STRING ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ID'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(10), find_column(script, p.lexpos(10)) + len(p[10]), p[8])
+
+    def p_value_string_docs_sub_id(p):
+        r'value : AT LPAREN STRING ARITH_DIV ID RPAREN start_docs STRING BAR ARITH_SUB ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(11), find_column(script, p.lexpos(11)) + len(p[10]), p[8])
+
+    def p_value_string_docs_syntax_id(p):
+        r'value : AT LPAREN STRING COLON ID ARITH_DIV ID RPAREN start_docs STRING BAR ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(12), find_column(script, p.lexpos(12)) + len(p[10]), p[10])
+
+    def p_value_string_docs_syntax_sub_id(p):
+        r'value : AT LPAREN STRING COLON ID ARITH_DIV ID RPAREN start_docs STRING BAR ARITH_SUB ID_TYPE'
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(13), find_column(script, p.lexpos(13)) + len(p[10]), p[10])
+
     def p_start_docs(p):
         r'start_docs :'
         lexer.begin('docs')
@@ -1340,11 +1383,6 @@ def parse(script):
         r'value : UNDEF'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
             p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), None)
-
-    def p_value_default(p):
-        r'value : DEFAULT'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
-            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_stat_func(p):
         r'value : key'
