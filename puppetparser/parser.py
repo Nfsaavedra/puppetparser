@@ -38,7 +38,6 @@ def parse(script):
         'TRUE',
         'TYPE',
         'UNDEF',
-        'UNIT',
         'UNLESS',
         # Values
         'STRING',
@@ -165,7 +164,6 @@ def parse(script):
         'true': 'TRUE',
         'type': 'TYPE',
         'undef': 'UNDEF',
-        'unit': 'UNIT',
         'unless': 'UNLESS',
         'class': 'CLASS',
     }
