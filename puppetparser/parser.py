@@ -390,7 +390,7 @@ def parse(script):
             p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
                 p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[3][0][0], None, None, p[3][0][1])
         else:
-            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[4], r[5], r[0], None, None, r[2]), p[3]))
+            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[4], r[5], r[0], None, None, r[1]), p[3]))
 
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'
@@ -476,10 +476,11 @@ def parse(script):
             resources = list(map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[3]))
             default = None
             for r in resources:
-                if r.title.value == "default":
+                if isinstance(r.title, Value) and r.title.value == "default":
                     default = r
                     break
-            resources = list(filter(lambda r: r.title.value != "default", resources))
+            resources = list(filter(lambda r: isinstance(r.title, Value) and \
+                    r.title.value != "default", resources))
 
             p[0] = ResourceExpression(id.line, id.col, p.lineno(4), 
                 find_column(script, p.lexpos(4)) + 1, default, resources)
@@ -495,10 +496,11 @@ def parse(script):
             resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], p[1], r[0], r[1]), p[3])
             default = None
             for r in resources:
-                if r.title.value == "default":
+                if isinstance(r.title, Value) and r.title.value == "default":
                     default = r
                     break
-            resources = list(filter(lambda r: r.title.value != "default", resources))
+            resources = list(filter(lambda r: isinstance(r.title, Value) and \
+                    r.title.value != "default", resources))
 
             p[0] = ResourceExpression(p[1].line, p[1].col, p.lineno(4), 
                 find_column(script, p.lexpos(4)) + 1, default, resources)
@@ -525,18 +527,40 @@ def parse(script):
                 p.lineno(2), find_column(script, p.lexpos(2)))
 
     def p_virtual_resource(p):
-        r'resource : AT ID LBRACKET expression COLON attributes RBRACKET'
-        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)), 
-            p.lineno(7), find_column(script, p.lexpos(7)) + 1, "@" + p[2], p[4], p[6])
+        r'resource : AT ID LBRACKET resource_list RBRACKET'
+        if (len(p[4]) == 1):
+            p[0] = Resource(p.lineno(2), find_column(script, p.lexpos(2)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, "@" + p[2], p[4][0][0], p[4][0][1])
+        else:
+            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], "@" + p[2], r[0], r[1]), p[4])
+            default = None
+            for r in resources:
+                if isinstance(r.title, Value) and r.title.value == "default":
+                    default = r
+                    break
+            resources = list(filter(lambda r: isinstance(r.title, Value) and \
+                    r.title.value != "default", resources))
+
+            p[0] = ResourceExpression(p.lineno(2), find_column(script, p.lexpos(2)), p.lineno(5), 
+                find_column(script, p.lexpos(5)) + 1, default, resources)
 
     def p_exported_resource(p):
-        r'resource : AT AT ID LBRACKET expression COLON attributes RBRACKET'
-        if not re.match(r"([a-z][a-z0-9_]*)?(::[a-z][a-z0-9_]*)*", p[1]):
-            raise InvalidPuppetScript(f'Syntax error')
-        p[0] = Resource(p.lineno(1), find_column(script, p.lexpos(1)),
-            p.lineno(8), find_column(script, p.lexpos(8)) + 1, "@@" + p[3], p[4], p[7])
+        r'resource : AT AT ID LBRACKET resource_list RBRACKET'
+        if (len(p[4]) == 1):
+            p[0] = Resource(p.lineno(3), find_column(script, p.lexpos(3)), p.lineno(6), 
+                find_column(script, p.lexpos(6)) + 1, "@@" + p[3], p[5][0][0], p[5][0][1])
+        else:
+            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], "@@" + p[3], r[0], r[1]), p[5])
+            default = None
+            for r in resources:
+                if isinstance(r.title, Value) and r.title.value == "default":
+                    default = r
+                    break
+            resources = list(filter(lambda r: isinstance(r.title, Value) and \
+                    r.title.value != "default", resources))
+
+            p[0] = ResourceExpression(p.lineno(3), find_column(script, p.lexpos(3)), p.lineno(6), 
+                find_column(script, p.lexpos(6)) + 1, default, resources)
 
     def p_abstract_resource(p):
         r'resource : reference LBRACKET expression COLON attributes RBRACKET'
