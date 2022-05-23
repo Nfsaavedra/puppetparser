@@ -1406,7 +1406,7 @@ def parse(script):
     def p_value_undef(p):
         r'value : UNDEF'
         p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
-            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), None)
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_value_stat_func(p):
         r'value : key'
