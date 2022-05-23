@@ -84,5 +84,5 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].name, "apache::bool2http")
         self.assertIsInstance(res[0].parameters[0], Parameter)
         self.assertEqual(res[0].parameters[0].name, "$arg")
-        self.assertEqual(res[0].return_type, "String")
+        self.assertEqual(res[0].return_type.value, "String")
         self.assertIsInstance(res[0].body[0], Case)

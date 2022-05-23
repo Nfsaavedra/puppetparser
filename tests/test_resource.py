@@ -196,7 +196,7 @@ wooo
         res = parse(code)[0]
         self.assertIsInstance(res[0], ResourceDeclaration)
         self.assertEqual(res[0].name, "apache::vhost")
-        self.assertEqual(res[0].parameters[3].type, "String")
+        self.assertEqual(res[0].parameters[3].type.value, "String")
         self.assertEqual(res[0].block[3].type.value, "file")
 
     def test_resource_default(self):

@@ -32,7 +32,8 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].end_col, 14)
         self.assertEqual(res[0].inherits, "webserver2")
         self.assertEqual(res[0].parameters[0].name, "$content")
-        self.assertEqual(res[0].parameters[0].type, "String")
+        self.assertEqual(res[0].parameters[0].line, 2)
+        self.assertEqual(res[0].parameters[0].type.value, "String")
         self.assertEqual(len(res[0].block), 3)
         for e in res[0].block:
             self.assertIsInstance(e, Resource)

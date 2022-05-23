@@ -646,12 +646,11 @@ def parse(script):
 
     def p_parameter(p):
         r'parameter : data_type ID EQUAL expression'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)),
-            p[4].end_line, p[4].end_col, p[1], p[2], p[4])
+        p[0] = Parameter(p[1].line, p[1].col, p[4].end_line, p[4].end_col, p[1], p[2], p[4])
 
     def p_parameter_no_default(p):
         r'parameter : data_type ID'
-        p[0] = Parameter(p.lineno(1), find_column(script, p.lexpos(1)), 
+        p[0] = Parameter(p[1].line, p[1].col, 
             p.lineno(2), find_column(script, p.lexpos(2)) + len(p[2]), p[1], p[2], None)
 
     def p_parameter_only_name(p):
@@ -1309,7 +1308,8 @@ def parse(script):
     ### Data Type ###
     def p_data_type(p):
         r'data_type : ID_TYPE'
-        p[0] = p[1]
+        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
+            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
 
     def p_data_type_reference(p):
         r'data_type : reference'
