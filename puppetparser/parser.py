@@ -265,6 +265,7 @@ def parse(script):
 
     def t_docs_string(t):
         r"(\n|[^\|])+"
+        t.lexer.lineno += t.value.count('\n')
         t.type = "STRING"
         return t
 
