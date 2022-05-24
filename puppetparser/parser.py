@@ -388,10 +388,10 @@ def parse(script):
     def p_class_resource_declaration(p):
         r'class : CLASS LBRACKET resource_list RBRACKET'
         if (len(p[3]) == 1):
-            p[0] = PuppetClass(p.lineno(1), find_column(script, p.lexpos(1)),
-                p.lineno(4), find_column(script, p.lexpos(4)) + 1, p[3][0][0], None, None, p[3][0][1])
+            p[0] = ClassAsResource(p.lineno(1), find_column(script, p.lexpos(1)), p.lineno(4), 
+                find_column(script, p.lexpos(4)) + 1, p[3][0][0], p[3][0][1])
         else:
-            p[0] = list(map(lambda r: PuppetClass(r[2], r[3], r[4], r[5], r[0], None, None, r[1]), p[3]))
+            p[0] = list(map(lambda r: ClassAsResource(r[2], r[3], r[4], r[5], r[0], r[1]), p[3]))
 
     def p_node(p):
         r'node : NODE STRING LBRACKET block RBRACKET'

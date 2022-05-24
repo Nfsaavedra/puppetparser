@@ -74,6 +74,13 @@ class PuppetClass(CodeElement):
         self.block: list = block
         self.inherits: str = inherits
         self.parameters: Union[list[Parameter], list[Attribute]] = parameters
+
+class ClassAsResource(CodeElement):
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, 
+            title: str, attributes: list[Attribute]) -> None:
+        super().__init__(line, col, end_line, end_col)
+        self.title: str = title
+        self.attributes: list[Attribute] = attributes
     
 class Node(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,

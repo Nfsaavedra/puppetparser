@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import PuppetClass, Resource
+from puppetparser.model import ClassAsResource, PuppetClass, Resource
 
 class TestClass(unittest.TestCase):
     def test_class(self):
@@ -47,6 +47,24 @@ class TestClass(unittest.TestCase):
         """
 
         res = parse(code)[0]
-        self.assertIsInstance(res[0], PuppetClass)
-        self.assertEqual(res[0].name.value, "apache")
-        self.assertEqual(res[0].parameters[0].key.value, "version")
+        self.assertIsInstance(res[0], ClassAsResource)
+        self.assertEqual(res[0].title.value, "apache")
+        self.assertEqual(res[0].attributes[0].key.value, "version")
+
+    def test_resource_declarations(self):
+        code = """
+            class {
+                'apache':
+                    version => '2.2.21';
+                'nginx':
+                    version => '2.2.21'
+            }
+        """
+
+        res = parse(code)[0]
+        self.assertIsInstance(res[0][0], ClassAsResource)
+        self.assertEqual(res[0][0].title.value, "apache")
+        self.assertEqual(res[0][0].attributes[0].key.value, "version")
+        self.assertIsInstance(res[0][1], ClassAsResource)
+        self.assertEqual(res[0][1].title.value, "nginx")
+        self.assertEqual(res[0][1].attributes[0].key.value, "version")
