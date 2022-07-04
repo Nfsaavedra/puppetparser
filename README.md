@@ -6,6 +6,11 @@ puppet-parser is a Python library to parse Puppet scripts. This parser allows th
 
 To install run:
 ```
+pip install puppetparser
+```
+
+Or clone the Github repository and run:
+```
 python3 setup.py install
 ```
 
