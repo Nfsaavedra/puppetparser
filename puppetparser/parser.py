@@ -1433,5 +1433,5 @@ def parse(script):
         raise InvalidPuppetScript(f'Syntax error {p}')
 
     # Build the parser
-    parser = yacc()
+    parser = yacc(debug=False)
     return parser.parse(script), comments
