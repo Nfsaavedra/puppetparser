@@ -1,7 +1,9 @@
 from ply.lex import lex
 from ply.yacc import yacc
-import re
+import tempfile
+import re, os
 from puppetparser.model import *
+from puppetparser import parsetab
 
 class InvalidPuppetScript(Exception):
     pass
@@ -1433,5 +1435,11 @@ def parse(script):
         raise InvalidPuppetScript(f'Syntax error {p}')
 
     # Build the parser
-    parser = yacc(debug=False)
+    parsedir = os.path.dirname(parsetab.__file__)
+    # By default, store generated parse files with the code
+    # If we don't have write permission, put them in the configured tempdir
+    if (not os.access(parsedir, os.W_OK)):
+        parsedir = tempfile.gettempdir()
+
+    parser = yacc(debug=False, outputdir=parsedir)
     return parser.parse(script), comments
