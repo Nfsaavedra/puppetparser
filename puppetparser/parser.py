@@ -3,7 +3,7 @@ from ply.yacc import yacc
 import tempfile
 import re, os
 from puppetparser.model import *
-from puppetparser import parsetab
+from puppetparser import parser as pf
 
 class InvalidPuppetScript(Exception):
     pass
@@ -1435,7 +1435,7 @@ def parse(script):
         raise InvalidPuppetScript(f'Syntax error {p}')
 
     # Build the parser
-    parsedir = os.path.dirname(parsetab.__file__)
+    parsedir = os.path.dirname(pf.__file__)
     # By default, store generated parse files with the code
     # If we don't have write permission, put them in the configured tempdir
     if (not os.access(parsedir, os.W_OK)):
