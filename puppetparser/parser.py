@@ -1329,8 +1329,12 @@ def parse(script):
 
     def p_value_string(p):
         r'value : STRING'
-        p[0] = Value(p.lineno(1), find_column(script, p.lexpos(1)),
-            p.lineno(1), find_column(script, p.lexpos(1)) + len(p[1]), p[1])
+        start_line = p.lineno(1)
+        end_line = start_line + p[1].count('\n')
+        start_col = find_column(script, p.lexpos(1))
+        end_col = len(p[1].split('\n')[-1]) + 1
+
+        p[0] = Value(start_line, start_col, end_line, end_col, p[1])
 
     def p_value_string_docs(p):
         r'value : AT LPAREN STRING ARITH_DIV ID_TYPE RPAREN start_docs STRING BAR ID_TYPE'
