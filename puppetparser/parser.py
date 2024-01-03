@@ -9,7 +9,10 @@ class InvalidPuppetScript(Exception):
     pass
 
 def find_column(input, pos):
-    line_start = input.rfind('\n', 0, pos) + 1
+    rfind = input.rfind('\n', 0, pos)
+    if rfind == -1:
+        return pos
+    line_start = rfind + 1
     return (pos - line_start) + 1
 
 def parse(script):
@@ -1332,8 +1335,10 @@ def parse(script):
         start_line = p.lineno(1)
         end_line = start_line + p[1].count('\n')
         start_col = find_column(script, p.lexpos(1))
-        end_col = len(p[1].split('\n')[-1]) + 1
-
+        if start_line == end_line:
+            end_col = start_col + len(p[1].split('\n')[-1]) + 2
+        else:
+            end_col = len(p[1].split('\n')[-1]) + 2
         p[0] = Value(start_line, start_col, end_line, end_col, p[1])
 
     def p_value_string_docs(p):
