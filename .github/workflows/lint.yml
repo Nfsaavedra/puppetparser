@@ -16,6 +16,3 @@ jobs:
 
       - name: Run pyright
         uses: jakebailey/pyright-action@v2
-        with:
-          working-directory: puppetparser
-          project: .
