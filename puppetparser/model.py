@@ -1,4 +1,6 @@
-from typing import Union
+from typing import Dict, List, Union, Tuple, Optional
+
+ValueType = Union["CodeElement", List["CodeElement"], Dict["CodeElement", "CodeElement"] | str | bool | int | float | None]
 
 class CodeElement:
     def __init__(self, line: int, col: int, end_line: int, end_col: int) -> None:
@@ -7,23 +9,30 @@ class CodeElement:
         self.end_line: int = end_line
         self.end_col: int = end_col
 
+    def __hash__(self) -> int:
+        return hash((self.line, self.col, self.end_line, self.end_col))
+
 class Value(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, value) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, value: ValueType) -> None:
         super().__init__(line, col, end_line, end_col)
-        self.value = value
+        self.value: ValueType  = value
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, Value) and __o.value == self.value
 
     def __hash__(self) -> int:
+        if isinstance(self.value, list):
+            return hash(tuple(self.value))
+        elif isinstance(self.value, dict):
+            return hash(tuple(self.value.items()))
         return self.value.__hash__()
 
 class Hash(Value):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, value: dict) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, value: Dict[CodeElement, CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col, value)
 
 class Array(Value):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, value: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, value: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col, value)
 
 class Regex(Value):
@@ -31,22 +40,22 @@ class Regex(Value):
         super().__init__(line, col, end_line, end_col, value)
 
 class Attribute(CodeElement):
-    def __init__(self, key: Value, value: Value) -> None:
+    def __init__(self, key: CodeElement, value: CodeElement) -> None:
         super().__init__(key.line, key.col, value.end_line, value.end_col)
-        self.key: Value = key
-        self.value: Value = value
+        self.key: CodeElement = key
+        self.value: CodeElement = value
 
 class Resource(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            type: Union[str, 'Reference', 'ResourceCollector'], title: str, attributes: list[Attribute]) -> None:
+            type: Value | str, title: str | None, attributes: List[Attribute]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type = type
-        self.title: str = title
+        self.title: str | None = title
         self.attributes: list[Attribute] = attributes
 
 class ResourceDeclaration(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            name: str, parameters: list, block: list) -> None:
+            name: str, parameters: List["Parameter"], block: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name = name
         self.parameters = parameters
@@ -54,40 +63,40 @@ class ResourceDeclaration(CodeElement):
 
 class Parameter(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            type: str, name: str, default) -> None:
+            type: str, name: str, default: CodeElement | None) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type: str = type
         self.name: str = name
         self.default = default
 
 class Assignment(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, name, value) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, name: CodeElement, value: CodeElement) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name = name
         self.value = value
 
 class PuppetClass(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, name: str, 
-            block: list, inherits: str, parameters: Union[list[Parameter], list[Attribute]]) -> None:
+            block: List[CodeElement], inherits: str, parameters: List[Parameter] | List[Attribute]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name: str = name
-        self.block: list = block
+        self.block:  List[CodeElement] = block
         self.inherits: str = inherits
-        self.parameters: Union[list[Parameter], list[Attribute]] = parameters
+        self.parameters: List[Parameter] | List[Attribute] = parameters
 
 class ClassAsResource(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            title: str, attributes: list[Attribute]) -> None:
+            title: str, attributes: List[Attribute]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.title: str = title
-        self.attributes: list[Attribute] = attributes
+        self.attributes: List[Attribute] = attributes
     
 class Node(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,
-            name: str, block: list) -> None:
+            name: str, block:  List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name: str = name
-        self.block: list = block
+        self.block:  List[CodeElement] = block
 
 class Comment(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, content: str):
@@ -96,112 +105,112 @@ class Comment(CodeElement):
 
 class Operation(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,
-            arguments: tuple, operator: str):
+            arguments: Tuple[CodeElement, ...], operator: str):
         super().__init__(line, col, end_line, end_col)
-        self.arguments: tuple = arguments
+        self.arguments: Tuple[CodeElement, ...] = arguments
         self.operator: str = operator
 
 class Lambda(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            parameters: tuple, block: list) -> None:
+            parameters: Tuple[CodeElement, ...], block: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.parameters = parameters
         self.block = block
 
 class FunctionCall(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, name: str, arguments: tuple, lamb: Lambda) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, name: Value, arguments: List[CodeElement], lamb: Lambda | None) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name = name
         self.arguments = arguments
         self.lamb = lamb
 
 class If(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, condition: CodeElement, block: list, 
-            elseblock: 'If') -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, condition: CodeElement | None, block: List[CodeElement], 
+            elseblock: Optional['If']) -> None:
         super().__init__(line, col, end_line, end_col)
         self.condition = condition
         self.block = block
         self.elseblock = elseblock
 
 class Unless(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, condition: CodeElement, block: list, 
-            elseblock: 'Unless') -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, condition: CodeElement | None, block: List[CodeElement], 
+            elseblock: Optional['Unless']) -> None:
         super().__init__(line, col, end_line, end_col)
         self.condition = condition
         self.block = block
         self.elseblock = elseblock
 
 class Include(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, inc: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, inc: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.inc = inc
 
 class Import(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, imp: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, imp: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.imp = imp
 
 class Require(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, req: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, req: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.req = req
 
 class Contain(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, cont: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, cont: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.cont = cont
 
 class Debug(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, args: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, args: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.args = args
 
 class Fail(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, args: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, args: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.args = args
 
 class Realize(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, classes: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, classes: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.classes = classes
 
 class Tag(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, tags: list) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, tags: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.tags = tags
 
 class Match(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            expressions: list, block: list) -> None:
+            expressions: List[CodeElement], block: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.expressions = expressions
         self.block = block
 
 class Case(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,
-            control: CodeElement, matches: list[Match]) -> None:
+            control: CodeElement, matches: List[Match]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.control = control
         self.matches = matches
 
 class Selector(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,
-            control: CodeElement, hash: dict) -> None:
+            control: CodeElement, hash: Hash) -> None:
         super().__init__(line, col, end_line, end_col)
         self.control = control
         self.hash = hash
 
 class Reference(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            type: str, references: list) -> None:
+            type: str, references: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type: str = type
-        self.references: list = references
+        self.references: List[CodeElement] = references
 
 class Function(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int,
-            name: str, parameters: list, return_type, body: list) -> None:
+            name: str, parameters: List[Parameter], return_type: Value | None, body: List[CodeElement]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.name = name
         self.parameters = parameters
@@ -209,14 +218,14 @@ class Function(CodeElement):
         self.body = body
 
 class ResourceCollector(CodeElement):
-    def __init__(self, line: int, col: int, end_line: int, end_col: int, resource_type: str, search) -> None:
+    def __init__(self, line: int, col: int, end_line: int, end_col: int, resource_type: str, search: CodeElement | None) -> None:
         super().__init__(line, col, end_line, end_col)
         self.resource_type = resource_type
         self.search = search
 
 class ResourceExpression(CodeElement):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, 
-            default: Resource, resources: list[Resource]) -> None:
+            default: Resource | None, resources: List[Resource]) -> None:
         super().__init__(line, col, end_line, end_col)
         self.default = default
         self.resources = resources
