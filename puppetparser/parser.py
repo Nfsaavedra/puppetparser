@@ -2,6 +2,7 @@ from ply.lex import lex
 from ply.yacc import yacc
 import tempfile
 import re, os
+from typing import Tuple, List
 from puppetparser.model import *
 from puppetparser import parser as pf
 
@@ -15,7 +16,7 @@ def find_column(input, pos):
     line_start = rfind + 1
     return (pos - line_start) + 1
 
-def parse(script):
+def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
     comments = []
 
     tokens = (

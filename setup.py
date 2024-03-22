@@ -6,7 +6,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='puppetparser',
-    version='0.2.1',
+    version='0.2.2',
     author='Nuno Saavedra',
     author_email='nuno.saavedra@tecnico.ulisboa.pt',
     url="https://github.com/Nfsaavedra/puppetparser",
