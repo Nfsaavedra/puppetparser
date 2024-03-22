@@ -1,8 +1,19 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import Assignment, Case, If, Include, Operation, Regex, Resource, Selector, Unless
+from puppetparser.model import (
+    Assignment,
+    Case,
+    If,
+    Include,
+    Operation,
+    Regex,
+    Resource,
+    Selector,
+    Unless,
+)
 from tests.utility import assertHash
+
 
 class TestClass(unittest.TestCase):
     def test_if(self):
@@ -67,10 +78,10 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].end_line, 6)
         self.assertIsInstance(res[0].control, Operation)
         self.assertEqual(len(res[0].matches), 3)
-        self.assertEqual(res[0].matches[0].expressions[0].value, 'RedHat')
+        self.assertEqual(res[0].matches[0].expressions[0].value, "RedHat")
         self.assertIsInstance(res[0].matches[1].expressions[0], Regex)
         self.assertIsInstance(res[0].matches[1].block[0], Include)
-        self.assertEqual(res[0].matches[2].expressions[0].value, 'default')
+        self.assertEqual(res[0].matches[2].expressions[0].value, "default")
         self.assertEqual(res[0].matches[1].expressions[0].line, 4)
 
     def test_selector(self):
@@ -88,9 +99,8 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].value.line, 2)
         self.assertEqual(res[0].value.end_line, 6)
         self.assertIsInstance(res[0].value.control, Operation)
-        assertHash(self, res[0].value.hash.value, {
-            'Redhat': 'wheel', 
-            'Debian': 'wheel',
-            'default': 'root'
-        })
-
+        assertHash(
+            self,
+            res[0].value.hash.value,
+            {"Redhat": "wheel", "Debian": "wheel", "default": "root"},
+        )

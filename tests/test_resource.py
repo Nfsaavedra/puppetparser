@@ -1,9 +1,17 @@
 import unittest
 
 from puppetparser.parser import InvalidPuppetScript, parse
-from puppetparser.model import Attribute, Reference, Regex, \
-        Resource, ResourceCollector, ResourceDeclaration, ResourceExpression
+from puppetparser.model import (
+    Attribute,
+    Reference,
+    Regex,
+    Resource,
+    ResourceCollector,
+    ResourceDeclaration,
+    ResourceExpression,
+)
 from tests.utility import assertArray, assertHash
+
 
 class TestResource(unittest.TestCase):
     def test_resource(self):

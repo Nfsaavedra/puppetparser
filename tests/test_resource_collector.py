@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Operation, ResourceCollector
 
+
 class TestClass(unittest.TestCase):
     def test_resource_collector(self):
         code = """

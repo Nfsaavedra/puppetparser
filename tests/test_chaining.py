@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Chaining, Reference, Resource, ResourceCollector
 
+
 class TestClass(unittest.TestCase):
     def test_chaining_1(self):
         code = "Package['ntp'] -> File['/etc/ntp.conf'] ~> Service['ntpd']"
@@ -47,7 +48,7 @@ class TestClass(unittest.TestCase):
         code = """
         Yumrepo <| |> -> Package <| |>
         """
-        
+
         res = parse(code)[0]
         self.assertIsInstance(res[0], Chaining)
         self.assertIsInstance(res[0].op1, ResourceCollector)

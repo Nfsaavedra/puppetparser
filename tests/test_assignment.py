@@ -4,6 +4,7 @@ from puppetparser.parser import parse
 from puppetparser.model import Assignment, Node, Resource
 from tests.utility import assertArray, assertHash
 
+
 class TestClass(unittest.TestCase):
     def test_assignment(self):
         code = """

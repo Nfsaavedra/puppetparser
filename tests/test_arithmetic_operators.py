@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Operation, Resource
 
+
 class TestClass(unittest.TestCase):
     def test_arithmetic_operators(self):
         code = """
