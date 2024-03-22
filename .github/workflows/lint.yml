@@ -18,3 +18,4 @@ jobs:
         uses: jakebailey/pyright-action@v2
         with:
           working-directory: puppetparser
+          project: .
