@@ -1,8 +1,9 @@
 def assertHash(test, hash_p, hash):
-    for k,v in hash_p.items():
+    for k, v in hash_p.items():
         test.assertTrue(k.value in hash)
         test.assertEqual(v.value, hash[k.value])
     test.assertEqual(len(hash_p.keys()), len(hash.keys()))
+
 
 def assertArray(test, array_p, array):
     for i in range(len(array)):

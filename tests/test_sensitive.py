@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import FunctionCall
 
+
 class TestClass(unittest.TestCase):
     def test_sensitive(self):
         code = """

@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import PuppetClass, Comment
 
+
 class TestClass(unittest.TestCase):
     def test_comment(self):
         code = """

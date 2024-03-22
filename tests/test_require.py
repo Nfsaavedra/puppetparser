@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Require
 
+
 class TestClass(unittest.TestCase):
     def test_require(self):
         code = """

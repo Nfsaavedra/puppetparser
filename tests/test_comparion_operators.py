@@ -4,6 +4,7 @@ from puppetparser.parser import parse
 from puppetparser.model import Operation, Resource
 from tests.utility import assertArray
 
+
 class TestClass(unittest.TestCase):
     def test_comparison_operators(self):
         code = """

@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Contain
 
+
 class TestClass(unittest.TestCase):
     def test_contain(self):
         code = """

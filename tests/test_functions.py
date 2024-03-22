@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Case, Function, FunctionCall, Parameter, Resource
 
+
 class TestClass(unittest.TestCase):
     def test_function_prefix(self):
         code = """

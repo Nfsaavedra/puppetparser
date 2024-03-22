@@ -3,6 +3,7 @@ import unittest
 from puppetparser.parser import parse
 from puppetparser.model import Realize, Resource
 
+
 class TestClass(unittest.TestCase):
     def test_virtual_resource(self):
         code = """
