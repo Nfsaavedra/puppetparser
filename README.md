@@ -9,9 +9,9 @@ To install run:
 pip install puppetparser
 ```
 
-Or clone the Github repository and run:
+Or clone the GitHub repository and run:
 ```
-python3 setup.py install
+poetry install
 ```
 
 ## Usage
