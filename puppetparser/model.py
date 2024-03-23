@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple, Optional, Generic, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CodeElement:
