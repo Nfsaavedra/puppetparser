@@ -1,10 +1,6 @@
-from typing import Dict, List, Union, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Generic, TypeVar
 
-ValueType = Union[
-    "CodeElement",
-    List["CodeElement"],
-    Dict["CodeElement", "CodeElement"] | str | bool | int | float | None,
-]
+T = TypeVar('T')
 
 
 class CodeElement:
@@ -18,25 +14,23 @@ class CodeElement:
         return hash((self.line, self.col, self.end_line, self.end_col))
 
 
-class Value(CodeElement):
+class Value(CodeElement, Generic[T]):
     def __init__(
-        self, line: int, col: int, end_line: int, end_col: int, value: ValueType
+        self, line: int, col: int, end_line: int, end_col: int, value: T
     ) -> None:
         super().__init__(line, col, end_line, end_col)
-        self.value: ValueType = value
+        self.value: T = value
 
     def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Value) and __o.value == self.value
+        if not isinstance(__o, self.__class__):
+            return False
+        return self.value == __o.value
 
     def __hash__(self) -> int:
-        if isinstance(self.value, list):
-            return hash(tuple(self.value))
-        elif isinstance(self.value, dict):
-            return hash(tuple(self.value.items()))
         return self.value.__hash__()
 
 
-class Hash(Value):
+class Hash(Value[Dict[CodeElement, CodeElement]]):
     def __init__(
         self,
         line: int,
@@ -48,14 +42,14 @@ class Hash(Value):
         super().__init__(line, col, end_line, end_col, value)
 
 
-class Array(Value):
+class Array(Value[List[CodeElement]]):
     def __init__(
         self, line: int, col: int, end_line: int, end_col: int, value: List[CodeElement]
     ) -> None:
         super().__init__(line, col, end_line, end_col, value)
 
 
-class Regex(Value):
+class Regex(Value[str]):
     def __init__(self, line: int, col: int, end_line: int, end_col: int, value: str):
         super().__init__(line, col, end_line, end_col, value)
 
@@ -74,13 +68,13 @@ class Resource(CodeElement):
         col: int,
         end_line: int,
         end_col: int,
-        type: Value | str,
-        title: str | None,
+        type: Value[str],
+        title: Value[str] | None,
         attributes: List[Attribute],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type = type
-        self.title: str | None = title
+        self.title: Value[str] | None = title
         self.attributes: list[Attribute] = attributes
 
 
@@ -108,12 +102,12 @@ class Parameter(CodeElement):
         col: int,
         end_line: int,
         end_col: int,
-        type: str,
+        type: str | CodeElement,
         name: str,
         default: CodeElement | None,
     ) -> None:
         super().__init__(line, col, end_line, end_col)
-        self.type: str = type
+        self.type: str | CodeElement = type
         self.name: str = name
         self.default = default
 
@@ -225,7 +219,7 @@ class FunctionCall(CodeElement):
         col: int,
         end_line: int,
         end_col: int,
-        name: Value,
+        name: Value[str],
         arguments: List[CodeElement],
         lamb: Lambda | None,
     ) -> None:
@@ -407,7 +401,7 @@ class Function(CodeElement):
         end_col: int,
         name: str,
         parameters: List[Parameter],
-        return_type: Value | None,
+        return_type: Value[str] | None,
         body: List[CodeElement],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
