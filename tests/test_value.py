@@ -13,8 +13,8 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].value, "test")
         self.assertEqual(res[0].line, 1)
         self.assertEqual(res[0].end_line, 1)
-        self.assertEqual(res[0].col, 0)
-        self.assertEqual(res[0].end_col, 6)
+        self.assertEqual(res[0].col, 1)
+        self.assertEqual(res[0].end_col, 7)
 
     def test_value_string_multiline(self):
         code = """

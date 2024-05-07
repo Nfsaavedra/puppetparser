@@ -15,7 +15,7 @@ class InvalidPuppetScript(Exception):
 def find_column(input: str, pos: int) -> int:
     rfind = input.rfind("\n", 0, pos)
     if rfind == -1:
-        return pos
+        return pos + 1
     line_start = rfind + 1
     return (pos - line_start) + 1
 

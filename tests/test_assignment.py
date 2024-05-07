@@ -6,8 +6,8 @@ from tests.utility import assertArray, assertHash
 
 
 class TestClass(unittest.TestCase):
-    def test_assignment(self):
-        code = """
+    def test_assignment_node(self):
+        code = """$a = 1
             node "webserver" {
                 $hello = 123
                 package { 'apache2':
@@ -22,21 +22,29 @@ class TestClass(unittest.TestCase):
         """
 
         res = parse(code)[0]
-        self.assertIsInstance(res[0], Node)
-        self.assertEqual(res[0].name, "webserver")
-        self.assertEqual(len(res[0].block), 3)
-        self.assertIsInstance(res[0].block[0], Assignment)
-        self.assertEqual(res[0].block[0].name, "$hello")
-        self.assertEqual(res[0].block[0].value.value, 123)
-        self.assertIsInstance(res[0].block[1], Resource)
-        self.assertIsInstance(res[0].block[2], Resource)
-        self.assertEqual(res[0].block[0].line, 3)
-        self.assertEqual(res[0].block[0].col, 17)
-        self.assertEqual(res[0].block[0].end_col, 29)
-        self.assertEqual(res[0].block[1].line, 4)
-        self.assertEqual(res[0].block[1].col, 17)
-        self.assertEqual(res[0].block[1].end_line, 6)
-        self.assertEqual(res[0].block[1].end_col, 18)
+
+        self.assertEqual(res[0].name, "$a")
+        self.assertEqual(res[0].value.value, 1)
+        self.assertEqual(res[0].line, 1)
+        self.assertEqual(res[0].end_line, 1)
+        self.assertEqual(res[0].col, 1)
+        self.assertEqual(res[0].end_col, 7)
+
+        self.assertIsInstance(res[1], Node)
+        self.assertEqual(res[1].name, "webserver")
+        self.assertEqual(len(res[1].block), 3)
+        self.assertIsInstance(res[1].block[0], Assignment)
+        self.assertEqual(res[1].block[0].name, "$hello")
+        self.assertEqual(res[1].block[0].value.value, 123)
+        self.assertIsInstance(res[1].block[1], Resource)
+        self.assertIsInstance(res[1].block[2], Resource)
+        self.assertEqual(res[1].block[0].line, 3)
+        self.assertEqual(res[1].block[0].col, 17)
+        self.assertEqual(res[1].block[0].end_col, 29)
+        self.assertEqual(res[1].block[1].line, 4)
+        self.assertEqual(res[1].block[1].col, 17)
+        self.assertEqual(res[1].block[1].end_line, 6)
+        self.assertEqual(res[1].block[1].end_col, 18)
 
     def test_assignment_array(self):
         code = """
