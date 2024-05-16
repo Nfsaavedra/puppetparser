@@ -1,6 +1,16 @@
+from types import NoneType
 from typing import Dict, List, Tuple, Optional, Generic, TypeVar
 
-T = TypeVar("T")
+T = TypeVar(
+    "T",
+    str,
+    int,
+    float,
+    bool,
+    NoneType,
+    Dict["CodeElement", "CodeElement"],
+    List["CodeElement"],
+)
 
 
 class CodeElement:
@@ -27,7 +37,10 @@ class Value(CodeElement, Generic[T]):
         return self.value == __o.value
 
     def __hash__(self) -> int:
-        return self.value.__hash__()
+        if self.value is None:
+            return 0
+
+        return self.value.__hash__()  # type: ignore
 
 
 class Hash(Value[Dict[CodeElement, CodeElement]]):
