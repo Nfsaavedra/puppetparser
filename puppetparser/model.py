@@ -206,7 +206,7 @@ class Operation(CodeElement):
         operator: str,
     ):
         super().__init__(line, col, end_line, end_col)
-        self.arguments: Tuple[CodeElement, ...] = arguments
+        self.arguments: List[CodeElement] = list(arguments)
         self.operator: str = operator
 
 
