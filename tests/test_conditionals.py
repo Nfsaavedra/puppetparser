@@ -11,7 +11,7 @@ from puppetparser.model import (
     Resource,
     Selector,
     Unless,
-    Id
+    Id,
 )
 from tests.utility import assertHash
 

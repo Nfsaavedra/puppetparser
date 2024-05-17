@@ -41,7 +41,8 @@ class Value(CodeElement, Generic[T]):
             return 0
 
         return self.value.__hash__()  # type: ignore
-    
+
+
 class Id(Value[str]):
     def __init__(
         self, line: int, col: int, end_line: int, end_col: int, value: str

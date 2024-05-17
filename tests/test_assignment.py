@@ -133,4 +133,3 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[0].name.value, "$a")
         self.assertIsInstance(res[0].value, Id)
         self.assertEqual(res[0].value.value, "$b")
-

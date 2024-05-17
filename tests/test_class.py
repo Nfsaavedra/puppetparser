@@ -1,7 +1,12 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import ClassAsResource, PuppetClass, Resource, ResourceExpression
+from puppetparser.model import (
+    ClassAsResource,
+    PuppetClass,
+    Resource,
+    ResourceExpression,
+)
 
 
 class TestClass(unittest.TestCase):
