@@ -11,6 +11,7 @@ from puppetparser.model import (
     Resource,
     Selector,
     Unless,
+    Id
 )
 from tests.utility import assertHash
 
@@ -34,6 +35,7 @@ class TestClass(unittest.TestCase):
         res = parse(code)[0]
         self.assertIsInstance(res[0], If)
         self.assertIsInstance(res[0].condition, Operation)
+        self.assertIsInstance(res[0].condition.arguments[0], Id)
         self.assertIsInstance(res[0].block[0], Resource)
         self.assertIsInstance(res[0].elseblock, If)
         self.assertIsInstance(res[0].elseblock.block[0], Resource)

@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import ClassAsResource, PuppetClass, Resource
+from puppetparser.model import ClassAsResource, PuppetClass, Resource, ResourceExpression
 
 
 class TestClass(unittest.TestCase):
@@ -63,9 +63,10 @@ class TestClass(unittest.TestCase):
         """
 
         res = parse(code)[0]
-        self.assertIsInstance(res[0][0], ClassAsResource)
-        self.assertEqual(res[0][0].title.value, "apache")
-        self.assertEqual(res[0][0].attributes[0].key.value, "version")
-        self.assertIsInstance(res[0][1], ClassAsResource)
-        self.assertEqual(res[0][1].title.value, "nginx")
-        self.assertEqual(res[0][1].attributes[0].key.value, "version")
+        self.assertIsInstance(res[0], ResourceExpression)
+        self.assertIsInstance(res[0].resources[0], ClassAsResource)
+        self.assertEqual(res[0].resources[0].title.value, "apache")
+        self.assertEqual(res[0].resources[0].attributes[0].key.value, "version")
+        self.assertIsInstance(res[0].resources[1], ClassAsResource)
+        self.assertEqual(res[0].resources[1].title.value, "nginx")
+        self.assertEqual(res[0].resources[1].attributes[0].key.value, "version")

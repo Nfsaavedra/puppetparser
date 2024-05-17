@@ -418,8 +418,16 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
                 p[3][0][1],
             )
         else:
-            p[0] = list(
+            resources = list(
                 map(lambda r: ClassAsResource(r[2], r[3], r[4], r[5], r[0], r[1]), p[3])
+            )
+            p[0] = ResourceExpression(
+                p.lineno(1),
+                find_column(script, p.lexpos(1)),
+                p.lineno(4),
+                find_column(script, p.lexpos(4)) + 1,
+                None,
+                resources,
             )
 
     def p_node(p: YaccProduction):
@@ -468,12 +476,19 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_assignment(p: YaccProduction):
         r"assignment : ID EQUAL expression"
+        id = Id(
+            p.lineno(1),
+            find_column(script, p.lexpos(1)),
+            p.lineno(1),
+            find_column(script, p.lexpos(1)) + len(p[1]),
+            p[1],
+        )
         p[0] = Assignment(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p[3].end_line,
             p[3].end_col,
-            p[1],
+            id,
             p[3],
         )
 
@@ -523,12 +538,19 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_assignment_type_alias(p: YaccProduction):
         r"assignment : TYPE ID_TYPE EQUAL expression"
+        id = Id(
+            p.lineno(1),
+            find_column(script, p.lexpos(1)),
+            p.lineno(2),
+            find_column(script, p.lexpos(2)) + len(p[2]),
+            p[1] + " " + p[2],
+        )
         p[0] = Assignment(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p[4].end_line,
             p[4].end_col,
-            p[1] + " " + p[2],
+            id,
             p[4],
         )
 
@@ -546,7 +568,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_resource_id(p: YaccProduction):
         r"resource : ID LBRACKET resource_list RBRACKET"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -974,7 +996,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_attribute(p: YaccProduction):
         r"attribute : ID HASH_ROCKET expression"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -989,7 +1011,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_attribute_splat(p: YaccProduction):
         r"attribute : ARITH_MUL HASH_ROCKET expression"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1000,7 +1022,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_attribute_plussign(p: YaccProduction):
         r"attribute : ID PLUSIGNMENT expression"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1015,7 +1037,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_attribute_splat_plussign(p: YaccProduction):
         r"attribute : ARITH_MUL PLUSIGNMENT expression"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1483,7 +1505,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             p[1].col,
             p.lineno(4),
             find_column(script, p.lexpos(4)) + 1,
-            (p[1], p[3]),
+            (p[1],) + tuple(p[3]),
             p[2] + p[4],
         )
         p.set_lineno(0, p.lineno(1))
@@ -1525,7 +1547,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_prefix(p: YaccProduction):
         r"function_call : ID LPAREN expressionlist RPAREN %prec NO_LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1544,7 +1566,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_type(p: YaccProduction):
         r"function_call : TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1563,7 +1585,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_id_type(p: YaccProduction):
         r"function_call : ID_TYPE LPAREN expressionlist RPAREN %prec NO_LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1582,7 +1604,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_prefix_lambda(p: YaccProduction):
         r"function_call : ID LPAREN expressionlist RPAREN lambda %prec LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -1601,7 +1623,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_chained(p: YaccProduction):
         r"function_call : expression DOT ID %prec NO_LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(3),
             find_column(script, p.lexpos(3)),
             p.lineno(3),
@@ -1620,7 +1642,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_chained_args(p: YaccProduction):
         r"function_call : expression DOT ID LPAREN expressionlist RPAREN %prec NO_LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(3),
             find_column(script, p.lexpos(3)),
             p.lineno(3),
@@ -1639,7 +1661,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_chained_lambda(p: YaccProduction):
         r"function_call : expression DOT ID lambda %prec LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(3),
             find_column(script, p.lexpos(3)),
             p.lineno(3),
@@ -1652,7 +1674,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_function_call_chained_lambda_args(p: YaccProduction):
         r"function_call : expression DOT ID LPAREN expressionlist RPAREN lambda %prec LAMBDA"
-        id = Value(
+        id = Id(
             p.lineno(3),
             find_column(script, p.lexpos(3)),
             p.lineno(3),
@@ -2109,7 +2131,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_value_id(p: YaccProduction):
         r"value : ID"
-        p[0] = Value(
+        p[0] = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -2119,7 +2141,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_value_type_id(p: YaccProduction):
         r"value : ID_TYPE"
-        p[0] = Value(
+        p[0] = Id(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(1),
@@ -2134,7 +2156,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             find_column(script, p.lexpos(1)),
             p.lineno(1),
             find_column(script, p.lexpos(1)) + len(p[1]),
-            p[1],
+            None,
         )
 
     def p_value_stat_func(p: YaccProduction):

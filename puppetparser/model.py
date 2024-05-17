@@ -1,5 +1,5 @@
 from types import NoneType
-from typing import Dict, List, Tuple, Optional, Generic, TypeVar
+from typing import Dict, Sequence, List, Tuple, Optional, Generic, TypeVar
 
 T = TypeVar(
     "T",
@@ -41,6 +41,12 @@ class Value(CodeElement, Generic[T]):
             return 0
 
         return self.value.__hash__()  # type: ignore
+    
+class Id(Value[str]):
+    def __init__(
+        self, line: int, col: int, end_line: int, end_col: int, value: str
+    ) -> None:
+        super().__init__(line, col, end_line, end_col, value)
 
 
 class Hash(Value[Dict[CodeElement, CodeElement]]):
@@ -82,12 +88,12 @@ class Resource(CodeElement):
         end_line: int,
         end_col: int,
         type: Value[str],
-        title: Value[str] | None,
+        title: Value[str] | Array | None,
         attributes: List[Attribute],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type = type
-        self.title: Value[str] | None = title
+        self.title: Value[str] | Array | None = title
         self.attributes: list[Attribute] = attributes
 
 
@@ -166,11 +172,11 @@ class ClassAsResource(CodeElement):
         col: int,
         end_line: int,
         end_col: int,
-        title: str,
+        title: Value[str] | Array | None,
         attributes: List[Attribute],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
-        self.title: str = title
+        self.title: Value[str] | Array | None = title
         self.attributes: List[Attribute] = attributes
 
 
@@ -447,7 +453,7 @@ class ResourceExpression(CodeElement):
         end_line: int,
         end_col: int,
         default: Resource | None,
-        resources: List[Resource],
+        resources: Sequence[Resource | ClassAsResource],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
         self.default = default

@@ -64,7 +64,7 @@ wooo
         self.assertEqual(res[0].attributes[10].value.value, "$\/*hello*\/^")
         self.assertEqual(res[0].line, 2)
         self.assertEqual(res[0].attributes[4].line, 7)
-        self.assertEqual(res[0].attributes[11].value.value, "undef")
+        self.assertEqual(res[0].attributes[11].value.value, None)
         self.assertEqual(res[0].attributes[12].value.value, "plus")
         self.assertEqual(res[0].attributes[13].value.value, "\ntest123\nkek\nwooo\n")
 

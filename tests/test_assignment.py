@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import Assignment, Node, Resource
+from puppetparser.model import Assignment, Node, Resource, Id
 from tests.utility import assertArray, assertHash
 
 
@@ -23,7 +23,8 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
 
-        self.assertEqual(res[0].name, "$a")
+        self.assertIsInstance(res[0].name, Id)
+        self.assertEqual(res[0].name.value, "$a")
         self.assertEqual(res[0].value.value, 1)
         self.assertEqual(res[0].line, 1)
         self.assertEqual(res[0].end_line, 1)
@@ -34,7 +35,8 @@ class TestClass(unittest.TestCase):
         self.assertEqual(res[1].name, "webserver")
         self.assertEqual(len(res[1].block), 3)
         self.assertIsInstance(res[1].block[0], Assignment)
-        self.assertEqual(res[1].block[0].name, "$hello")
+        self.assertIsInstance(res[1].block[0].name, Id)
+        self.assertEqual(res[1].block[0].name.value, "$hello")
         self.assertEqual(res[1].block[0].value.value, 123)
         self.assertIsInstance(res[1].block[1], Resource)
         self.assertIsInstance(res[1].block[2], Resource)
@@ -120,4 +122,15 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Assignment)
-        self.assertEqual(res[0].name, "type Unbound::Local_zone_type")
+        self.assertIsInstance(res[0].name, Id)
+        self.assertEqual(res[0].name.value, "type Unbound::Local_zone_type")
+
+    def test_assignment_variable(self):
+        code = """$a = $b"""
+        res = parse(code)[0]
+        self.assertIsInstance(res[0], Assignment)
+        self.assertIsInstance(res[0].name, Id)
+        self.assertEqual(res[0].name.value, "$a")
+        self.assertIsInstance(res[0].value, Id)
+        self.assertEqual(res[0].value.value, "$b")
+
