@@ -14,3 +14,5 @@ class TestClass(unittest.TestCase):
         self.assertIsInstance(res[0], ResourceCollector)
         self.assertIsInstance(res[0].search, Operation)
         self.assertEqual(res[0].search.operator, "==")
+        self.assertEqual(res[0].col, 13)
+        self.assertEqual(res[0].end_col, 39)

@@ -9,6 +9,7 @@ from puppetparser.model import (
     ResourceCollector,
     ResourceDeclaration,
     ResourceExpression,
+    Id,
 )
 from tests.utility import assertArray, assertHash
 
@@ -219,7 +220,8 @@ wooo
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(res[0].type, "Exec")
+        self.assertIsInstance(res[0].type, Id)
+        self.assertEqual(res[0].type.value, "Exec")
 
     def test_resource_expression(self):
         code = """

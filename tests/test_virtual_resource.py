@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import Realize, Resource
+from puppetparser.model import Realize, Resource, Id
 
 
 class TestClass(unittest.TestCase):
@@ -18,5 +18,6 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(res[0].type, "@user")
+        self.assertIsInstance(res[0].type, Id)
+        self.assertEqual(res[0].type.value, "@user")
         self.assertIsInstance(res[1], Realize)

@@ -1,7 +1,7 @@
 import unittest
 
 from puppetparser.parser import parse
-from puppetparser.model import Resource
+from puppetparser.model import Resource, Id
 
 
 class TestClass(unittest.TestCase):
@@ -19,4 +19,5 @@ class TestClass(unittest.TestCase):
 
         res = parse(code)[0]
         self.assertIsInstance(res[0], Resource)
-        self.assertEqual(res[0].type, "@@nagios_service")
+        self.assertIsInstance(res[0].type, Id)
+        self.assertEqual(res[0].type.value, "@@nagios_service")

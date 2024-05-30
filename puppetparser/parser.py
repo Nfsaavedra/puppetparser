@@ -684,18 +684,25 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_virtual_resource(p: YaccProduction):
         r"resource : AT ID LBRACKET resource_list RBRACKET"
+        id = Id(
+            p.lineno(2),
+            find_column(script, p.lexpos(2)),
+            p.lineno(2),
+            find_column(script, p.lexpos(2)) + len(p[2]),
+            "@" + p[2],
+        )
         if len(p[4]) == 1:
             p[0] = Resource(
                 p.lineno(2),
                 find_column(script, p.lexpos(2)),
                 p.lineno(5),
                 find_column(script, p.lexpos(5)) + 1,
-                "@" + p[2],
+                id,
                 p[4][0][0],
                 p[4][0][1],
             )
         else:
-            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], "@" + p[2], r[0], r[1]), p[4])  # type: ignore
+            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[4])  # type: ignore
             default = None
             for r in resources:
                 if isinstance(r.title, Value) and r.title.value == "default":
@@ -719,18 +726,26 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_exported_resource(p: YaccProduction):
         r"resource : AT AT ID LBRACKET resource_list RBRACKET"
+        id = Id(
+            p.lineno(3),
+            find_column(script, p.lexpos(3)),
+            p.lineno(3),
+            find_column(script, p.lexpos(3)) + len(p[3]),
+            "@@" + p[3],
+        )
+
         if len(p[4]) == 1:
             p[0] = Resource(
                 p.lineno(3),
                 find_column(script, p.lexpos(3)),
                 p.lineno(6),
                 find_column(script, p.lexpos(6)) + 1,
-                "@@" + p[3],
+                id,
                 p[5][0][0],
                 p[5][0][1],
             )
         else:
-            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], "@@" + p[3], r[0], r[1]), p[5])  # type: ignore
+            resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[5])  # type: ignore
             default = None
             for r in resources:
                 if isinstance(r.title, Value) and r.title.value == "default":
@@ -792,12 +807,19 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def p_resource_default(p: YaccProduction):
         r"resource : ID_TYPE LBRACKET attributes RBRACKET"
+        id = Id(
+            p.lineno(1),
+            find_column(script, p.lexpos(1)),
+            p.lineno(1),
+            find_column(script, p.lexpos(1)) + len(p[1]),
+            p[1],
+        )
         p[0] = Resource(
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(4),
             find_column(script, p.lexpos(4)) + 1,
-            p[1],
+            id,
             None,
             p[3],
         )
@@ -832,7 +854,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(4),
-            find_column(script, p.lexpos(4)) + 1,
+            find_column(script, p.lexpos(4)) + 2,
             p[1],
             p[3],
         )
@@ -843,7 +865,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             p.lineno(1),
             find_column(script, p.lexpos(1)),
             p.lineno(3),
-            find_column(script, p.lexpos(3)) + 1,
+            find_column(script, p.lexpos(3)) + 2,
             p[1],
             None,
         )
