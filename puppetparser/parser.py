@@ -305,7 +305,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
         return t
 
     def t_ID(t: LexToken):
-        r"([a-z\$]|(::))((::)?[A-Za-z0-9\_\-]*)*"
+        r"([a-z_\$]|(::))((::)?[A-Za-z0-9\_\-]*)*"
         t.type = keywords.get(t.value, statement_functions.get(t.value, "ID"))
         return t
 
