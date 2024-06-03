@@ -89,12 +89,12 @@ class Resource(CodeElement):
         end_line: int,
         end_col: int,
         type: Value[str],
-        title: Value[str] | Array | None,
+        title: CodeElement | None,
         attributes: List[Attribute],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
         self.type = type
-        self.title: Value[str] | Array | None = title
+        self.title: CodeElement | None = title
         self.attributes: list[Attribute] = attributes
 
 
@@ -173,11 +173,11 @@ class ClassAsResource(CodeElement):
         col: int,
         end_line: int,
         end_col: int,
-        title: Value[str] | Array | None,
+        title: CodeElement,
         attributes: List[Attribute],
     ) -> None:
         super().__init__(line, col, end_line, end_col)
-        self.title: Value[str] | Array | None = title
+        self.title: CodeElement = title
         self.attributes: List[Attribute] = attributes
 
 

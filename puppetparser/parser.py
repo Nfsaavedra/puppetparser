@@ -593,12 +593,20 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             )
             default = None
             for r in resources:
-                if isinstance(r.title, Value) and r.title.value == "default":
+                if (
+                    isinstance(r.title, Value)
+                    and isinstance(r.title, str)  # type: ignore
+                    and r.title.value == "default"  # type: ignore
+                ):
                     default = r
                     break
             resources = list(
                 filter(
-                    lambda r: isinstance(r.title, Value) and r.title.value != "default",
+                    lambda r: not (
+                        isinstance(r.title, Value)
+                        and isinstance(r.title, str)  # type: ignore
+                        and r.title.value == "default"  # type: ignore
+                    ),
                     resources,
                 )
             )
@@ -630,12 +638,20 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], p[1], r[0], r[1]), p[3])  # type: ignore
             default = None
             for r in resources:
-                if isinstance(r.title, Value) and r.title.value == "default":
+                if (
+                    isinstance(r.title, Value)
+                    and isinstance(r.title, str)  # type: ignore
+                    and r.title.value == "default"  # type: ignore
+                ):
                     default = r
                     break
             resources = list(
                 filter(
-                    lambda r: isinstance(r.title, Value) and r.title.value != "default",
+                    lambda r: not (
+                        isinstance(r.title, Value)
+                        and isinstance(r.title, str)  # type: ignore
+                        and r.title.value == "default"  # type: ignore
+                    ),
                     resources,
                 )
             )
@@ -705,12 +721,20 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[4])  # type: ignore
             default = None
             for r in resources:
-                if isinstance(r.title, Value) and r.title.value == "default":
+                if (
+                    isinstance(r.title, Value)
+                    and isinstance(r.title, str)  # type: ignore
+                    and r.title.value == "default"  # type: ignore
+                ):
                     default = r
                     break
             resources = list(
                 filter(
-                    lambda r: isinstance(r.title, Value) and r.title.value != "default",
+                    lambda r: not (
+                        isinstance(r.title, Value)
+                        and isinstance(r.title, str)  # type: ignore
+                        and r.title.value == "default"  # type: ignore
+                    ),
                     resources,
                 )
             )
@@ -748,12 +772,20 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             resources = map(lambda r: Resource(r[2], r[3], r[4], r[5], id, r[0], r[1]), p[5])  # type: ignore
             default = None
             for r in resources:
-                if isinstance(r.title, Value) and r.title.value == "default":
+                if (
+                    isinstance(r.title, Value)
+                    and isinstance(r.title, str)  # type: ignore
+                    and r.title.value == "default"  # type: ignore
+                ):
                     default = r
                     break
             resources = list(
                 filter(
-                    lambda r: isinstance(r.title, Value) and r.title.value != "default",
+                    lambda r: not (
+                        isinstance(r.title, Value)
+                        and isinstance(r.title, str)  # type: ignore
+                        and r.title.value == "default"  # type: ignore
+                    ),
                     resources,
                 )
             )
