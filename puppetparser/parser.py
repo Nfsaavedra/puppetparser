@@ -595,7 +595,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             for r in resources:
                 if (
                     isinstance(r.title, Value)
-                    and isinstance(r.title, str)  # type: ignore
+                    and isinstance(r.title.value, str)  # type: ignore
                     and r.title.value == "default"  # type: ignore
                 ):
                     default = r
@@ -604,7 +604,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
                 filter(
                     lambda r: not (
                         isinstance(r.title, Value)
-                        and isinstance(r.title, str)  # type: ignore
+                        and isinstance(r.title.value, str)  # type: ignore
                         and r.title.value == "default"  # type: ignore
                     ),
                     resources,
@@ -640,7 +640,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             for r in resources:
                 if (
                     isinstance(r.title, Value)
-                    and isinstance(r.title, str)  # type: ignore
+                    and isinstance(r.title.value, str)  # type: ignore
                     and r.title.value == "default"  # type: ignore
                 ):
                     default = r
@@ -649,7 +649,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
                 filter(
                     lambda r: not (
                         isinstance(r.title, Value)
-                        and isinstance(r.title, str)  # type: ignore
+                        and isinstance(r.title.value, str)  # type: ignore
                         and r.title.value == "default"  # type: ignore
                     ),
                     resources,
@@ -723,7 +723,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             for r in resources:
                 if (
                     isinstance(r.title, Value)
-                    and isinstance(r.title, str)  # type: ignore
+                    and isinstance(r.title.value, str)  # type: ignore
                     and r.title.value == "default"  # type: ignore
                 ):
                     default = r
@@ -732,7 +732,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
                 filter(
                     lambda r: not (
                         isinstance(r.title, Value)
-                        and isinstance(r.title, str)  # type: ignore
+                        and isinstance(r.title.value, str)  # type: ignore
                         and r.title.value == "default"  # type: ignore
                     ),
                     resources,
@@ -774,7 +774,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             for r in resources:
                 if (
                     isinstance(r.title, Value)
-                    and isinstance(r.title, str)  # type: ignore
+                    and isinstance(r.title.value, str)  # type: ignore
                     and r.title.value == "default"  # type: ignore
                 ):
                     default = r
@@ -783,7 +783,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
                 filter(
                     lambda r: not (
                         isinstance(r.title, Value)
-                        and isinstance(r.title, str)  # type: ignore
+                        and isinstance(r.title.value, str)  # type: ignore
                         and r.title.value == "default"  # type: ignore
                     ),
                     resources,
