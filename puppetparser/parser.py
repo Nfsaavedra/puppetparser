@@ -51,6 +51,8 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
         # Values
         "STRING",
         "INTEGER",
+        "HEXA_INTEGER",
+        "OCT_INTEGER",
         "FLOAT",
         "REGEXPRESSION",
         # SUGAR SYNTAX
@@ -280,14 +282,14 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     def t_octal_INTEGER(t: LexToken):
         r"0[0-9]+"
-        t.value = int(t.value, 8)  # type: ignore
-        t.type = "INTEGER"
+        t.value = str(t.value)  # type: ignore
+        t.type = "OCT_INTEGER"
         return t
 
     def t_hexa_INTEGER(t: LexToken):
         r"0x[0-9a-f]+"
-        t.value = int(t.value, 16)  # type: ignore
-        t.type = "INTEGER"
+        t.value = str(t.value)  # type: ignore
+        t.type = "HEXA_INTEGER"
         return t
 
     def t_NUMBER(t: LexToken):
@@ -2171,6 +2173,26 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             p.lineno(1),
             find_column(script, p.lexpos(1)) + len(str(p[1])),
             int(p[1]),
+        )
+
+    def p_value_hexa_integer(p: YaccProduction):
+        r"value : HEXA_INTEGER"
+        p[0] = Value(
+            p.lineno(1),
+            find_column(script, p.lexpos(1)),
+            p.lineno(1),
+            find_column(script, p.lexpos(1)) + len(str(p[1])),
+            int(p[1], 16),
+        )
+
+    def p_value_oct_integer(p: YaccProduction):
+        r"value : OCT_INTEGER"
+        p[0] = Value(
+            p.lineno(1),
+            find_column(script, p.lexpos(1)),
+            p.lineno(1),
+            find_column(script, p.lexpos(1)) + len(str(p[1])),
+            int(p[1], 8),
         )
 
     def p_value_float(p: YaccProduction):

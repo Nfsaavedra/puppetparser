@@ -59,6 +59,8 @@ wooo
         self.assertEqual(res[0].attributes[5].value.value, 1e-10)
         self.assertEqual(res[0].attributes[6].value.value, 0x777)
         self.assertEqual(res[0].attributes[7].value.value, 0o777)
+        self.assertEqual(res[0].attributes[7].value.col, 26)
+        self.assertEqual(res[0].attributes[7].value.end_col, 30)
         assertArray(self, res[0].attributes[8].value.value, [1, 2.0, "kek"])
         assertHash(self, res[0].attributes[9].value.value, {1: "hello", "kek": 2})
         self.assertIsInstance(res[0].attributes[10].value, Regex)
