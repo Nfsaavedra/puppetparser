@@ -2255,7 +2255,7 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
 
     # Needs to be declared here to be used by this function
     lexer = lexer.clone()
-    
+
     def p_start_regex(p: YaccProduction):
         r"start_regex :"
         lexer.begin("regex")
