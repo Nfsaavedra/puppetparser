@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "puppetparser"
-version = "0.2.13"
+version = "0.2.14"
 description = "A parser from Puppet to an object model"
 authors = ["Nuno Saavedra <nuno.saavedra@tecnico.ulisboa.pt>"]
 license = "GPL-3.0"

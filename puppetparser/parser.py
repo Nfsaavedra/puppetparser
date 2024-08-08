@@ -2253,6 +2253,9 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
             p[3],
         )
 
+    # Needs to be declared here to be used by this function
+    lexer = lexer.clone()
+    
     def p_start_regex(p: YaccProduction):
         r"start_regex :"
         lexer.begin("regex")
@@ -2271,4 +2274,4 @@ def parse(script: str) -> Tuple[List[CodeElement], List[Comment]]:
         parsedir = tempfile.gettempdir()
 
     parser = yacc(debug=False, outputdir=parsedir)
-    return parser.parse(script), comments
+    return parser.parse(script, lexer=lexer), comments
