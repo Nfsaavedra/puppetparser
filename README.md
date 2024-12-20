@@ -1,4 +1,4 @@
-# puppetparser
+# puppetparse
 
 puppetparser is a Python library to parse Puppet scripts. This parser allows the transformation of a Puppet script into an object model that represents the constructs of the Puppet DSL language.
 
